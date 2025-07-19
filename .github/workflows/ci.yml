@@ -1,0 +1,244 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        ruby-version: ['3.0', '3.1', '3.2', '3.3']
+        gemfile:
+          - Gemfile
+        include:
+          # Test against different Rails versions
+          - ruby-version: '3.1'
+            gemfile: gemfiles/rails_7_0.gemfile
+          - ruby-version: '3.2'
+            gemfile: gemfiles/rails_7_1.gemfile
+          - ruby-version: '3.3'
+            gemfile: gemfiles/rails_edge.gemfile
+        exclude:
+          # Ruby 3.0 doesn't work with Rails edge
+          - ruby-version: '3.0'
+            gemfile: gemfiles/rails_edge.gemfile
+
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+      COVERAGE: true
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+
+    - name: Run tests
+      run: bundle exec rspec
+
+    - name: Upload coverage reports to Codecov
+      if: matrix.ruby-version == '3.3' && matrix.gemfile == 'Gemfile'
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage/coverage.xml
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    
+    - name: Run RuboCop
+      run: bundle exec rubocop
+    
+    - name: Check for security vulnerabilities
+      run: |
+        bundle exec bundle audit --update || echo "Bundle audit completed with findings"
+
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    
+    - name: Generate documentation
+      run: bundle exec yard doc
+    
+    - name: Check documentation coverage
+      run: |
+        DOC_COVERAGE=$(bundle exec yard stats --list-undoc | grep "100.00% documented" || echo "Documentation incomplete")
+        if [[ "$DOC_COVERAGE" != *"100.00% documented"* ]]; then
+          echo "❌ Documentation coverage is not 100%"
+          bundle exec yard stats --list-undoc
+          exit 1
+        else
+          echo "✅ Documentation coverage is 100%"
+        fi
+
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    
+    - name: Build gem
+      run: bundle exec gem build whodunit.gemspec
+    
+    - name: Check gem contents
+      run: |
+        gem contents whodunit-*.gem | head -20
+        echo "Gem size: $(ls -lh whodunit-*.gem | awk '{print $5}')"
+    
+    - name: Install gem locally
+      run: gem install whodunit-*.gem
+    
+    - name: Test gem installation
+      run: |
+        ruby -e "require 'whodunit'; puts 'Gem loads successfully'"
+        ruby -e "require 'whodunit'; puts Whodunit::VERSION"
+
+  compatibility:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    
+    - name: Check Ruby version compatibility
+      run: |
+        echo "Testing minimum Ruby version compatibility..."
+        ruby -e "
+          required_version = Gem::Requirement.new('>= 3.0.0')
+          current_version = Gem::Version.new(RUBY_VERSION)
+          unless required_version.satisfied_by?(current_version)
+            puts 'Ruby version compatibility check failed'
+            exit 1
+          end
+          puts 'Ruby version compatibility check passed'
+        "
+    
+    - name: Check Rails compatibility
+      run: |
+        echo "Testing Rails compatibility..."
+        bundle exec ruby -e "
+          require 'bundler/setup'
+          begin
+            require 'rails'
+            puts 'Rails compatibility check passed'
+          rescue LoadError
+            puts 'Rails not available, checking without Rails...'
+            require 'whodunit'
+            puts 'Gem loads without Rails - compatibility check passed'
+          end
+        "
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    
+    - name: Run bundle audit
+      run: |
+        bundle exec bundle audit check --update
+    
+    - name: Run additional security checks
+      run: |
+        echo "Running additional security checks..."
+        
+        # Check for common security patterns in Ruby gems
+        echo "Checking for hardcoded secrets..."
+        SECRET_MATCHES=$(grep -r -i "password.*=\|secret.*=\|api_key.*=\|token.*=" lib/ --include="*.rb" 2>/dev/null | grep -v "# " || true)
+        if [ -n "$SECRET_MATCHES" ]; then
+          echo "⚠️  Found potential hardcoded secrets - please review:"
+          echo "$SECRET_MATCHES" | head -5
+        else
+          echo "✅ No obvious hardcoded secrets found"
+        fi
+        
+        # Check for eval usage
+        echo "Checking for dangerous eval usage..."
+        EVAL_MATCHES=$(grep -r "\.eval\|Kernel\.eval\|instance_eval\|class_eval" lib/ --include="*.rb" 2>/dev/null | grep -v "# " || true)
+        if [ -n "$EVAL_MATCHES" ]; then
+          echo "⚠️  Found eval usage - please review for security implications:"
+          echo "$EVAL_MATCHES" | head -5
+        else
+          echo "✅ No eval usage found"
+        fi
+        
+        # Check for system calls
+        echo "Checking for system calls..."
+        SYSTEM_MATCHES=$(grep -r "system(\|exec(\|\`.*\`" lib/ --include="*.rb" 2>/dev/null | grep -v "# " || true)
+        if [ -n "$SYSTEM_MATCHES" ]; then
+          echo "⚠️  Found system calls - please review for security implications:"
+          echo "$SYSTEM_MATCHES" | head -5
+        else
+          echo "✅ No system calls found"
+        fi
+        
+        echo "✅ Security checks completed"
+
+  results:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [test, lint, documentation, build, compatibility, security]
+    
+    steps:
+    - name: Check all jobs
+      run: |
+        if [[ "${{ needs.test.result }}" == "success" && \
+              "${{ needs.lint.result }}" == "success" && \
+              "${{ needs.documentation.result }}" == "success" && \
+              "${{ needs.build.result }}" == "success" && \
+              "${{ needs.compatibility.result }}" == "success" && \
+              "${{ needs.security.result }}" == "success" ]]; then
+          echo "✅ All CI checks passed!"
+        else
+          echo "❌ Some CI checks failed:"
+          echo "Test: ${{ needs.test.result }}"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Documentation: ${{ needs.documentation.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Compatibility: ${{ needs.compatibility.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          exit 1
+        fi

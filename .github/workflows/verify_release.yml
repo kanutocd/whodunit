@@ -1,0 +1,89 @@
+name: Verify Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to test release for'
+        required: true
+        type: string
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    
+    - name: Update version
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        echo "Testing release for version: $VERSION"
+        sed -i "s/VERSION = \".*\"/VERSION = \"$VERSION\"/" lib/whodunit/version.rb
+    
+    - name: Run full test suite
+      run: bundle exec rspec
+    
+    - name: Check code style
+      run: bundle exec rubocop
+    
+    - name: Security audit
+      run: bundle exec bundle audit check --update
+    
+    - name: Generate documentation
+      run: bundle exec yard doc
+    
+    - name: Verify documentation coverage
+      run: |
+        DOC_COVERAGE=$(bundle exec yard stats --list-undoc | grep "100.00% documented" || echo "incomplete")
+        if [[ "$DOC_COVERAGE" != *"100.00% documented"* ]]; then
+          echo "❌ Documentation coverage is not 100%"
+          exit 1
+        fi
+        echo "✅ Documentation coverage is 100%"
+    
+    - name: Build gem
+      run: |
+        bundle exec gem build whodunit.gemspec
+        GEM_FILE=$(ls whodunit-*.gem)
+        echo "Built gem: $GEM_FILE"
+        gem spec "$GEM_FILE" | head -20
+    
+    - name: Test gem installation
+      run: |
+        GEM_FILE=$(ls whodunit-*.gem)
+        gem install "$GEM_FILE"
+        ruby -e "require 'whodunit'; puts 'Gem loads successfully'; puts Whodunit::VERSION"
+    
+    - name: Verify gem contents
+      run: |
+        GEM_FILE=$(ls whodunit-*.gem)
+        echo "Gem contents:"
+        gem contents "$GEM_FILE"
+        
+        echo "Checking for required files:"
+        gem contents "$GEM_FILE" | grep -E "(lib/whodunit\.rb|README\.md|LICENSE)" || {
+          echo "❌ Missing required files"
+          exit 1
+        }
+        echo "✅ All required files present"
+    
+    - name: Summary
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        echo "## Release Verification Summary for v$VERSION"
+        echo "✅ Tests passed"
+        echo "✅ Code style checks passed"
+        echo "✅ Security audit passed"
+        echo "✅ Documentation complete"
+        echo "✅ Gem builds successfully"
+        echo "✅ Gem installs correctly"
+        echo "✅ All required files present"
+        echo ""
+        echo "🚀 Ready for release!"
