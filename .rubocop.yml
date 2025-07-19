@@ -54,6 +54,14 @@ RSpec/DescribeClass:
   Exclude:
     - 'spec/integration/**/*'
 
+RSpec/VerifiedDoubles:
+  Enabled: false
+
+# Allow positional boolean arguments for standard Ruby method signatures
+Style/OptionalBooleanParameter:
+  Exclude:
+    - 'spec/**/*'
+
 # Performance optimizations
 Performance/StringReplacement:
   Enabled: true
@@ -94,3 +102,5 @@ Metrics/PerceivedComplexity:
   Max: 8
   Exclude:
     - 'spec/**/*'
+Gemspec/DevelopmentDependencies:
+  Enabled: false
