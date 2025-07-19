@@ -2,7 +2,7 @@
 
 Lightweight creator/updater/deleter tracking for Rails ActiveRecord models.
 
-> **Fun Fact**: The term "whodunit" was coined by literary critic Donald Gordon in 1930 when reviewing a murder mystery novel for _American News of Books_. He described Milward Kennedy's _Half Mast Murder_ as "a satisfactory whodunit" - the first recorded use of this now-famous term for mystery stories! *([Source: Wikipedia](https://en.wikipedia.org/wiki/Whodunit))*
+> **Fun Fact**: The term "whodunit" was coined by literary critic Donald Gordon in 1930 when reviewing a murder mystery novel for _American News of Books_. He described Milward Kennedy's _Half Mast Murder_ as "a satisfactory whodunit" - the first recorded use of this now-famous term for mystery stories! _([Source: Wikipedia](https://en.wikipedia.org/wiki/Whodunit))_
 
 ## Overview
 
@@ -19,7 +19,7 @@ Whodunit provides simple auditing for Rails applications by tracking who created
 - **Lightweight**: Only tracks user IDs, no change history or versioning
 - **Smart Soft-Delete Detection**: Automatically detects Discard, Paranoia, and custom soft-delete implementations
 - **Thread-Safe**: Uses Rails `CurrentAttributes` pattern for user context
-- **Zero Dependencies**: Only requires Rails 7.0+
+- **Zero Dependencies**: Only requires Rails 6.1+
 - **Performance Focused**: No default scopes or method overrides
 
 ## Installation
