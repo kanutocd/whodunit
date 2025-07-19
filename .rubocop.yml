@@ -1,0 +1,96 @@
+# RuboCop configuration for Whodunit gem
+
+plugins:
+  - rubocop-performance
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.0
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'coverage/**/*'
+    - 'bin/**/*'
+    - 'sig/**/*'
+
+# Layout & Formatting
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - 'spec/**/*'
+
+# Documentation
+Style/Documentation:
+  Exclude:
+    - 'spec/**/*'
+    - 'lib/whodunit/version.rb'
+
+# Allow long blocks in specs
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - 'whodunit.gemspec'
+
+# Allow longer methods in specs and configuration
+Metrics/MethodLength:
+  Exclude:
+    - 'spec/**/*'
+
+# RSpec specific configurations
+RSpec/ExampleLength:
+  Max: 15
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/NestedGroups:
+  Max: 4
+
+RSpec/ContextWording:
+  Enabled: false
+
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/integration/**/*'
+
+# Performance optimizations
+Performance/StringReplacement:
+  Enabled: true
+
+# Style preferences
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+
+Style/HashEachMethods:
+  Enabled: true
+
+Style/HashTransformKeys:
+  Enabled: true
+
+Style/HashTransformValues:
+  Enabled: true
+
+# Naming
+Naming/AccessorMethodName:
+  Exclude:
+    - 'lib/whodunit/migration_helpers.rb' # For table definition methods
+
+# Complexity
+Metrics/AbcSize:
+  Max: 20
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/CyclomaticComplexity:
+  Max: 8
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/PerceivedComplexity:
+  Max: 8
+  Exclude:
+    - 'spec/**/*'

@@ -35,6 +35,17 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  # Development dependencies
+  spec.add_development_dependency "bundler-audit", "~> 0.9"
+  spec.add_development_dependency "kramdown", "~> 2.4"
+  spec.add_development_dependency "ostruct", "~> 0.6"
+  spec.add_development_dependency "rubocop", "~> 1.65"
+  spec.add_development_dependency "rubocop-performance", "~> 1.21"
+  spec.add_development_dependency "rubocop-rspec", "~> 3.0"
+  spec.add_development_dependency "simplecov", "~> 0.22"
+  spec.add_development_dependency "simplecov-cobertura", "~> 2.1"
+  spec.add_development_dependency "yard", "~> 0.9"
+
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
 end
