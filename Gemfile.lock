@@ -54,7 +54,6 @@ GEM
     lint_roller (1.1.0)
     logger (1.7.0)
     minitest (5.25.5)
-    ostruct (0.6.3)
     parallel (1.27.0)
     parser (3.3.8.0)
       ast (~> 2.4.1)
@@ -139,7 +138,6 @@ DEPENDENCIES
   bundler-audit (~> 0.9)
   irb
   kramdown (~> 2.4)
-  ostruct (~> 0.6)
   rake (~> 13.0)
   rspec (~> 3.0)
   rubocop (~> 1.65)

@@ -11,7 +11,7 @@ unless defined?(Rails)
 
       def self.initializer(name, **options, &block)
         @initializers ||= []
-        @initializers << OpenStruct.new(name: name, options: options, block: block)
+        @initializers << { name: name, options: options, block: block }
       end
 
       def self.initializers

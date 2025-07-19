@@ -43,7 +43,6 @@ Gem::Specification.new do |spec|
   # Development dependencies
   spec.add_development_dependency "bundler-audit", "~> 0.9"
   spec.add_development_dependency "kramdown", "~> 2.4"
-  spec.add_development_dependency "ostruct", "~> 0.6"
   spec.add_development_dependency "rubocop", "~> 1.65"
   spec.add_development_dependency "rubocop-performance", "~> 1.21"
   spec.add_development_dependency "rubocop-rspec", "~> 3.0"

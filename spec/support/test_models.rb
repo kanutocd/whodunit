@@ -9,14 +9,16 @@ class MockActiveRecord
     %w[id creator_id updater_id deleter_id created_at updated_at]
   end
 
+  Column = Struct.new(:name, :type)
+
   def self.columns
     [
-      OpenStruct.new(name: "id", type: :integer),
-      OpenStruct.new(name: "creator_id", type: :bigint),
-      OpenStruct.new(name: "updater_id", type: :bigint),
-      OpenStruct.new(name: "deleter_id", type: :bigint),
-      OpenStruct.new(name: "created_at", type: :datetime),
-      OpenStruct.new(name: "updated_at", type: :datetime)
+      Column.new("id", :integer),
+      Column.new("creator_id", :bigint),
+      Column.new("updater_id", :bigint),
+      Column.new("deleter_id", :bigint),
+      Column.new("created_at", :datetime),
+      Column.new("updated_at", :datetime)
     ]
   end
 
@@ -43,10 +45,6 @@ class MockActiveRecord
 
   def self.included_modules
     []
-  end
-
-  def self.respond_to_missing?(_method_name, _include_private = false)
-    false
   end
 
   include Whodunit::Stampable
@@ -95,14 +93,14 @@ end
 # Model with soft delete
 class MockSoftDeleteRecord < MockActiveRecord
   def self.columns
-    super + [OpenStruct.new(name: "deleted_at", type: :datetime)]
+    super + [Column.new("deleted_at", :datetime)]
   end
 
   def self.column_names
     super + %w[deleted_at]
   end
 
-  def self.respond_to?(method_name, include_private = false)
+  def self.respond_to?(method_name, include_private: false)
     method_name == :deleted_at || super
   end
 end
