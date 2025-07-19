@@ -8,6 +8,12 @@ Lightweight creator/updater/deleter tracking for Rails ActiveRecord models.
 
 Whodunit provides simple auditing for Rails applications by tracking who created, updated, and deleted records. Unlike heavyweight solutions like PaperTrail or Audited, Whodunit focuses solely on user tracking with zero performance overhead.
 
+## Requirements
+
+- Ruby 3.1.0+ (tested on 3.1.0, 3.2.0, 3.3.0, 3.4). See the [the ruby-version matrix strategy of the CI workflow](https://github.com/kanutocd/whodunit/blob/main/.github/workflows/ci.yml#L15).
+- Rails 6.1+ (tested on 6.1, 7.0, 7.1, 8.0)
+- ActiveRecord for database operations
+
 ## Features
 
 - **Lightweight**: Only tracks user IDs, no change history or versioning

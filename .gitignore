@@ -58,3 +58,4 @@ build-iPhoneSimulator/
 /.vscode
 /.history
 .rspec*status
+/mise.toml

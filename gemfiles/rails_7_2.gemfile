@@ -2,9 +2,9 @@
 
 source "https://rubygems.org"
 
-# Rails 8.0 testing
-gem "activerecord", "~> 8.0.0"
-gem "activesupport", "~> 8.0.0"
+# Rails 7.2 testing
+gem "activerecord", "~> 7.2.0"
+gem "activesupport", "~> 7.2.0"
 
 # Specify your gem's dependencies in whodunit.gemspec
 gemspec path: "../"
