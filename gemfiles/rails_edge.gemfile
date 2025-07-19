@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+# Rails edge testing
+gem "activerecord", git: "https://github.com/rails/rails.git"
+gem "activesupport", git: "https://github.com/rails/rails.git"
+
+# Specify your gem's dependencies in whodunit.gemspec
+gemspec path: "../"
+
+gem "irb"
+gem "rake", "~> 13.0"
+
+gem "rspec", "~> 3.0"
