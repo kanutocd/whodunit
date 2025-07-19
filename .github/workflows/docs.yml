@@ -2,14 +2,17 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
   pages: write
   id-token: write
+
+env:
+  DOCS_FOLDER: ./docs
 
 concurrency:
   group: "pages"
@@ -19,24 +22,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 3.3
-        bundler-cache: true
-    
-    - name: Generate documentation
-      run: |
-        bundle exec yard doc
-        # Create .nojekyll to bypass Jekyll processing
-        touch doc/.nojekyll
-    
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: ./doc
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.3
+          bundler-cache: true
+
+      - name: Generate documentation
+        run: |
+          bundle exec yard doc
+          # Create .nojekyll to bypass Jekyll processing
+          touch ${{ env.DOCS_FOLDER }}/.nojekyll
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.DOCS_FOLDER }}
 
   deploy:
     if: github.ref == 'refs/heads/main'
