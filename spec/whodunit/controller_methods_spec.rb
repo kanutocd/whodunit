@@ -71,7 +71,7 @@ RSpec.describe Whodunit::ControllerMethods do
 
     it "tries alternative user methods when current_user not available" do
       test_user = double(id: 789)
-      
+
       alternative_controller = Class.new do
         include Whodunit::ControllerMethods
 
@@ -197,25 +197,33 @@ RSpec.describe Whodunit::ControllerMethods do
 
     describe ".skip_whodunit_for" do
       it "skips whodunit callbacks for specified actions" do
-        expect(controller_with_class_methods).to receive(:skip_before_action)
-          .with(:set_whodunit_user, only: %i[show index])
-        expect(controller_with_class_methods).to receive(:skip_after_action)
-          .with(:reset_whodunit_user, only: %i[show index])
+        allow(controller_with_class_methods).to receive(:skip_before_action)
+        allow(controller_with_class_methods).to receive(:skip_after_action)
 
         controller_with_class_methods.skip_whodunit_for(:show, :index)
+
+        expect(controller_with_class_methods).to have_received(:skip_before_action)
+          .with(:set_whodunit_user, only: %i[show index])
+        expect(controller_with_class_methods).to have_received(:skip_after_action)
+          .with(:reset_whodunit_user, only: %i[show index])
       end
     end
 
     describe ".whodunit_only_for" do
       it "only enables whodunit for specified actions" do
-        expect(controller_with_class_methods).to receive(:skip_before_action).with(:set_whodunit_user)
-        expect(controller_with_class_methods).to receive(:skip_after_action).with(:reset_whodunit_user)
-        expect(controller_with_class_methods).to receive(:before_action)
-          .with(:set_whodunit_user, only: %i[create update], if: :whodunit_user_available?)
-        expect(controller_with_class_methods).to receive(:after_action)
-          .with(:reset_whodunit_user, only: %i[create update])
+        allow(controller_with_class_methods).to receive(:skip_before_action)
+        allow(controller_with_class_methods).to receive(:skip_after_action)
+        allow(controller_with_class_methods).to receive(:before_action)
+        allow(controller_with_class_methods).to receive(:after_action)
 
         controller_with_class_methods.whodunit_only_for(:create, :update)
+
+        expect(controller_with_class_methods).to have_received(:skip_before_action).with(:set_whodunit_user)
+        expect(controller_with_class_methods).to have_received(:skip_after_action).with(:reset_whodunit_user)
+        expect(controller_with_class_methods).to have_received(:before_action)
+          .with(:set_whodunit_user, only: %i[create update], if: :whodunit_user_available?)
+        expect(controller_with_class_methods).to have_received(:after_action)
+          .with(:reset_whodunit_user, only: %i[create update])
       end
     end
   end
