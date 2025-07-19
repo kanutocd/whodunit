@@ -11,15 +11,15 @@ RSpec.describe Whodunit::Stampable do
     let(:model) { MockActiveRecord.new }
 
     it "detects creator column" do
-      expect(model.send(:has_creator_column?)).to be true
+      expect(model.send(:creator_column?)).to be true
     end
 
     it "detects updater column" do
-      expect(model.send(:has_updater_column?)).to be true
+      expect(model.send(:updater_column?)).to be true
     end
 
     it "detects deleter column" do
-      expect(model.send(:has_deleter_column?)).to be true
+      expect(model.send(:deleter_column?)).to be true
     end
   end
 
@@ -93,17 +93,24 @@ RSpec.describe Whodunit::Stampable do
 
     describe ".enable_whodunit_deleter!" do
       it "enables deleter tracking" do
-        expect(model_class).to receive(:before_destroy).with(:set_whodunit_deleter, if: :has_deleter_column?)
-        expect(model_class).to receive(:setup_deleter_association)
+        allow(model_class).to receive(:before_destroy)
+        allow(model_class).to receive(:setup_deleter_association)
+
         model_class.enable_whodunit_deleter!
+
+        expect(model_class).to have_received(:before_destroy).with(:set_whodunit_deleter, if: :deleter_column?)
+        expect(model_class).to have_received(:setup_deleter_association)
         expect(model_class.soft_delete_enabled?).to be true
       end
     end
 
     describe ".disable_whodunit_deleter!" do
       it "disables deleter tracking" do
-        expect(model_class).to receive(:skip_callback).with(:destroy, :before, :set_whodunit_deleter)
+        allow(model_class).to receive(:skip_callback)
+
         model_class.disable_whodunit_deleter!
+
+        expect(model_class).to have_received(:skip_callback).with(:destroy, :before, :set_whodunit_deleter)
         expect(model_class.soft_delete_enabled?).to be false
       end
     end
@@ -121,11 +128,15 @@ RSpec.describe Whodunit::Stampable do
             end
           end
 
-          expect(model_with_all_columns).to receive(:setup_creator_association)
-          expect(model_with_all_columns).to receive(:setup_updater_association)
-          expect(model_with_all_columns).to receive(:setup_deleter_association)
+          allow(model_with_all_columns).to receive(:setup_creator_association)
+          allow(model_with_all_columns).to receive(:setup_updater_association)
+          allow(model_with_all_columns).to receive(:setup_deleter_association)
 
           model_with_all_columns.send(:setup_whodunit_associations)
+
+          expect(model_with_all_columns).to have_received(:setup_creator_association)
+          expect(model_with_all_columns).to have_received(:setup_updater_association)
+          expect(model_with_all_columns).to have_received(:setup_deleter_association)
         end
       end
     end
