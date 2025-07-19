@@ -37,7 +37,7 @@ module Whodunit
     def self.enabled_for?(model)
       return false unless model.respond_to?(:columns)
 
-      gem_based_detection(model) ||
+      gem_based_detection?(model) ||
         column_pattern_detection(model) ||
         method_based_detection(model)
     end
@@ -52,7 +52,7 @@ module Whodunit
     # @param model [Class] the ActiveRecord model class to check
     # @return [Boolean] true if a gem-based soft-delete is detected
     # @api private
-    def self.gem_based_detection(model)
+    def self.gem_based_detection?(model)
       # Discard gem
       return true if model.included_modules.any? { |mod| mod.to_s.include?("Discard") }
 

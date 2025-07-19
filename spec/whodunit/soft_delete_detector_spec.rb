@@ -25,18 +25,12 @@ RSpec.describe Whodunit::SoftDeleteDetector do
     context "when model has column-based soft delete" do
       it "detects deleted_at column" do
         column = double(name: "deleted_at", type: :datetime)
-        model = double(
-          included_modules: [],
-          columns: [column],
-          ancestors: []
-        )
+        model = double(included_modules: [],
+                       columns: [column],
+                       ancestors: [])
         # Set up specific respond_to? behaviors - order matters!
         allow(model).to receive(:respond_to?) do |method|
-          case method
-          when :columns then true
-          when :paranoid?, :acts_as_paranoid then false
-          else false
-          end
+          method == :columns
         end
 
         expect(described_class.enabled_for?(model)).to be true
@@ -44,18 +38,12 @@ RSpec.describe Whodunit::SoftDeleteDetector do
 
       it "detects discarded_at column" do
         column = double(name: "discarded_at", type: :timestamp)
-        model = double(
-          included_modules: [],
-          columns: [column],
-          ancestors: []
-        )
+        model = double(included_modules: [],
+                       columns: [column],
+                       ancestors: [])
         # Set up specific respond_to? behaviors
         allow(model).to receive(:respond_to?) do |method|
-          case method
-          when :columns then true
-          when :paranoid?, :acts_as_paranoid then false
-          else false
-          end
+          method == :columns
         end
 
         expect(described_class.enabled_for?(model)).to be true
@@ -63,18 +51,12 @@ RSpec.describe Whodunit::SoftDeleteDetector do
 
       it "ignores non-timestamp columns with soft delete names" do
         column = double(name: "deleted_at", type: :string)
-        model = double(
-          included_modules: [],
-          columns: [column],
-          ancestors: []
-        )
+        model = double(included_modules: [],
+                       columns: [column],
+                       ancestors: [])
         # Set up specific respond_to? behaviors
         allow(model).to receive(:respond_to?) do |method|
-          case method
-          when :columns then true
-          when :paranoid?, :acts_as_paranoid then false
-          else false
-          end
+          method == :columns
         end
 
         expect(described_class.enabled_for?(model)).to be false
@@ -83,12 +65,10 @@ RSpec.describe Whodunit::SoftDeleteDetector do
 
     context "when model has method-based soft delete" do
       it "detects deleted_at method" do
-        model = double(
-          respond_to?: true,
-          included_modules: [],
-          columns: [],
-          ancestors: []
-        )
+        model = double(respond_to?: true,
+                       included_modules: [],
+                       columns: [],
+                       ancestors: [])
         allow(model).to receive(:respond_to?).with(:paranoid?).and_return(false)
         allow(model).to receive(:respond_to?).with(:acts_as_paranoid).and_return(false)
         allow(model).to receive(:respond_to?).with(:deleted_at).and_return(true)
@@ -97,12 +77,10 @@ RSpec.describe Whodunit::SoftDeleteDetector do
       end
 
       it "detects discarded_at method" do
-        model = double(
-          respond_to?: true,
-          included_modules: [],
-          columns: [],
-          ancestors: []
-        )
+        model = double(respond_to?: true,
+                       included_modules: [],
+                       columns: [],
+                       ancestors: [])
         allow(model).to receive(:respond_to?).with(:paranoid?).and_return(false)
         allow(model).to receive(:respond_to?).with(:acts_as_paranoid).and_return(false)
         allow(model).to receive(:respond_to?).with(:deleted_at).and_return(false)
@@ -114,12 +92,10 @@ RSpec.describe Whodunit::SoftDeleteDetector do
 
     context "when model has no soft delete" do
       it "returns false" do
-        model = double(
-          respond_to?: true,
-          included_modules: [],
-          columns: [double(name: "created_at", type: :datetime)],
-          ancestors: []
-        )
+        model = double(respond_to?: true,
+                       included_modules: [],
+                       columns: [double(name: "created_at", type: :datetime)],
+                       ancestors: [])
         allow(model).to receive(:respond_to?).and_return(false)
 
         expect(described_class.enabled_for?(model)).to be false

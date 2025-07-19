@@ -41,61 +41,30 @@ module Whodunit
 
     included do
       # Set up callbacks
-      before_create :set_whodunit_creator, if: :has_creator_column?
-      before_update :set_whodunit_updater, if: :has_updater_column?
+      before_create :set_whodunit_creator, if: :creator_column?
+      before_update :set_whodunit_updater, if: :updater_column?
 
       # Only add destroy callback if soft-delete is detected
       if Whodunit.auto_detect_soft_delete &&
          Whodunit::SoftDeleteDetector.enabled_for?(self)
-        before_destroy :set_whodunit_deleter, if: :has_deleter_column?
+        before_destroy :set_whodunit_deleter, if: :deleter_column?
       end
 
       # Set up associations - call on the class
       setup_whodunit_associations
     end
 
-    class_methods do
-      # Check if the model has soft-delete enabled.
-      #
-      # Uses caching to avoid repeated detection calls. The result is cached
-      # in @soft_delete_enabled instance variable.
-      #
-      # @return [Boolean] true if soft-delete is enabled for this model
-      # @example
-      #   Post.soft_delete_enabled?  # => true (if Post has deleted_at column)
+    class_methods do # rubocop:disable Metrics/BlockLength
       def soft_delete_enabled?
         @soft_delete_enabled ||= Whodunit::SoftDeleteDetector.enabled_for?(self)
       end
 
-      # Force enable deleter tracking for this model.
-      #
-      # This bypasses automatic soft-delete detection and manually enables
-      # deleter tracking. Useful for models that use custom soft-delete
-      # implementations not detected automatically.
-      #
-      # @return [void]
-      # @example
-      #   class Post < ApplicationRecord
-      #     include Whodunit::Stampable
-      #     enable_whodunit_deleter!
-      #   end
       def enable_whodunit_deleter!
-        before_destroy :set_whodunit_deleter, if: :has_deleter_column?
+        before_destroy :set_whodunit_deleter, if: :deleter_column?
         setup_deleter_association
         @soft_delete_enabled = true
       end
 
-      # Force disable deleter tracking for this model.
-      #
-      # This removes the deleter callback even if soft-delete is detected.
-      # Useful if you want to disable deleter tracking for specific models.
-      #
-      # @return [void]
-      # @example
-      #   class Post < ApplicationRecord
-      #     include Whodunit::Stampable
-      #     disable_whodunit_deleter!
-      #   end
       def disable_whodunit_deleter!
         skip_callback :destroy, :before, :set_whodunit_deleter
         @soft_delete_enabled = false
@@ -104,9 +73,21 @@ module Whodunit
       private
 
       def setup_whodunit_associations
-        setup_creator_association if column_names.include?(Whodunit.creator_column.to_s)
-        setup_updater_association if column_names.include?(Whodunit.updater_column.to_s)
-        setup_deleter_association if column_names.include?(Whodunit.deleter_column.to_s) && soft_delete_enabled?
+        setup_creator_association if creator_column_exists?
+        setup_updater_association if updater_column_exists?
+        setup_deleter_association if deleter_column_exists? && soft_delete_enabled?
+      end
+
+      def creator_column_exists?
+        column_names.include?(Whodunit.creator_column.to_s)
+      end
+
+      def updater_column_exists?
+        column_names.include?(Whodunit.updater_column.to_s)
+      end
+
+      def deleter_column_exists?
+        column_names.include?(Whodunit.deleter_column.to_s)
       end
 
       def setup_creator_association
@@ -132,7 +113,7 @@ module Whodunit
     end
 
     # @!group Callback Methods
-    
+
     # Set the creator ID when a record is created.
     #
     # This method is automatically called before_create if the model has a creator column.
@@ -180,7 +161,7 @@ module Whodunit
     #
     # @return [Boolean] true if the creator column exists
     # @api private
-    def has_creator_column?
+    def creator_column?
       self.class.column_names.include?(Whodunit.creator_column.to_s)
     end
 
@@ -188,7 +169,7 @@ module Whodunit
     #
     # @return [Boolean] true if the updater column exists
     # @api private
-    def has_updater_column?
+    def updater_column?
       self.class.column_names.include?(Whodunit.updater_column.to_s)
     end
 
@@ -196,7 +177,7 @@ module Whodunit
     #
     # @return [Boolean] true if the deleter column exists
     # @api private
-    def has_deleter_column?
+    def deleter_column?
       self.class.column_names.include?(Whodunit.deleter_column.to_s)
     end
   end
