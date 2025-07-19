@@ -9,7 +9,8 @@ Gem::Specification.new do |spec|
   spec.email = ["kenneth.c.demanawa@gmail.com"]
 
   spec.summary = "Lightweight creator/updater/deleter tracking for ActiveRecord models"
-  spec.description = "A lightweight Rails gem that provides simple auditing by tracking who created, updated, and deleted ActiveRecord models. Features smart soft-delete detection and zero performance overhead."
+  spec.description = "A lightweight Rails gem that provides simple auditing by tracking who created, updated, and " \
+                     "deleted ActiveRecord models. Features smart soft-delete detection and zero performance overhead."
   spec.homepage = "https://github.com/kanutocd/whodunit"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0.0"

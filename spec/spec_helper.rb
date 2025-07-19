@@ -17,8 +17,8 @@ SimpleCov.start do
   enable_coverage :branch
 
   # Generate multiple formats for CI
-  if ENV['CI'] || ENV['COVERAGE']
-    require 'simplecov-cobertura'
+  if ENV["CI"] || ENV["COVERAGE"]
+    require "simplecov-cobertura"
     SimpleCov.formatters = [
       SimpleCov::Formatter::HTMLFormatter,
       SimpleCov::Formatter::CoberturaFormatter
