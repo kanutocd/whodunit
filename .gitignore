@@ -57,3 +57,4 @@ build-iPhoneSimulator/
 
 /.vscode
 /.history
+.rspec*status
