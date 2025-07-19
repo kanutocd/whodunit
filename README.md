@@ -2,7 +2,7 @@
 
 Lightweight creator/updater/deleter tracking for Rails ActiveRecord models.
 
-> **Fun Fact**: The term "whodunit" was coined by literary critic Donald Gordon in 1930 when reviewing a murder mystery novel for _American News of Books_. He described Milward Kennedy's _Half Mast Murder_ as "a satisfactory whodunit" - the first recorded use of this now-famous term for mystery stories!
+> **Fun Fact**: The term "whodunit" was coined by literary critic Donald Gordon in 1930 when reviewing a murder mystery novel for _American News of Books_. He described Milward Kennedy's _Half Mast Murder_ as "a satisfactory whodunit" - the first recorded use of this now-famous term for mystery stories! *([Source: Wikipedia](https://en.wikipedia.org/wiki/Whodunit))*
 
 ## Overview
 
