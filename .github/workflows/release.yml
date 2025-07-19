@@ -153,7 +153,7 @@ jobs:
           ruby -e "require 'whodunit'; puts 'Gem loads successfully'; puts Whodunit::VERSION"
 
       - name: Upload gem artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gem-file
           path: ${{ steps.build.outputs.gem_file }}
