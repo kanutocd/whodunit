@@ -43,13 +43,9 @@ RSpec.describe Whodunit::MigrationHelpers do
         @existing_columns[table] = columns.index_with { true }
       end
 
-      def set_existing_tables(tables)
-        @existing_tables = tables
-      end
+      attr_writer :existing_tables
 
-      def set_migration_name(name)
-        @migration_name = name
-      end
+      attr_writer :migration_name
 
       def migration_name
         @migration_name || self.class.name.split("::").last
@@ -90,7 +86,7 @@ RSpec.describe Whodunit::MigrationHelpers do
     end
 
     it "auto-detects deleter need when soft-delete columns exist" do
-      migration.set_existing_tables([:users])
+      migration.existing_tables = [:users]
       migration.set_existing_columns(:users, [:deleted_at])
       migration.add_whodunit_stamps(:users, include_deleter: :auto)
 
@@ -126,7 +122,7 @@ RSpec.describe Whodunit::MigrationHelpers do
     end
 
     it "removes deleter column when it exists and should be included" do
-      migration.set_existing_tables([:users])
+      migration.existing_tables = [:users]
       migration.set_existing_columns(:users, %i[creator_id updater_id deleter_id deleted_at])
       migration.remove_whodunit_stamps(:users, include_deleter: :auto)
 
@@ -194,7 +190,7 @@ RSpec.describe Whodunit::MigrationHelpers do
       end
 
       it "auto-detects based on table columns when include_deleter is :auto" do
-        migration.set_existing_tables([:users])
+        migration.existing_tables = [:users]
         migration.set_existing_columns(:users, [:deleted_at])
 
         result = migration.send(:should_include_deleter?, :users, :auto)
@@ -209,26 +205,25 @@ RSpec.describe Whodunit::MigrationHelpers do
 
     describe "#infer_table_name_from_migration" do
       it "infers table name from Create migration" do
-        migration.set_migration_name("CreateUsers")
+        migration.migration_name = "CreateUsers"
 
         result = migration.send(:infer_table_name_from_migration)
         expect(result).to eq("users")
       end
 
       it "infers table name from AddTo migration" do
-        migration.set_migration_name("AddStampsToUsers")
+        migration.migration_name = "AddStampsToUsers"
 
         result = migration.send(:infer_table_name_from_migration)
         expect(result).to eq("users")
       end
 
       it "returns nil for unrecognized migration names" do
-        migration.set_migration_name("SomeOtherMigration")
+        migration.migration_name = "SomeOtherMigration"
 
         result = migration.send(:infer_table_name_from_migration)
         expect(result).to be_nil
       end
-
     end
   end
 end
