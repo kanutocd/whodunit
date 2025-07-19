@@ -6,28 +6,28 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Perform a dry run (no actual release)'
+        description: "Perform a dry run (no actual release)"
         required: false
-        default: 'true'
+        default: "true"
         type: choice
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
       version:
-        description: 'Version to release (optional, defaults to version in lib/whodunit/version.rb)'
+        description: "Version to release (optional, defaults to version in lib/whodunit/version.rb)"
         required: false
         type: string
       create_release:
-        description: 'Create GitHub release'
+        description: "Create GitHub release"
         required: false
-        default: 'true'
+        default: "true"
         type: choice
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
 
 env:
-  RUBY_VERSION: '3.3'
+  RUBY_VERSION: "3.3"
 
 jobs:
   validate:
@@ -36,275 +36,278 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       is_dry_run: ${{ steps.config.outputs.is_dry_run }}
       should_create_release: ${{ steps.config.outputs.should_create_release }}
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ env.RUBY_VERSION }}
-        bundler-cache: true
-    
-    - name: Configure release parameters
-      id: config
-      run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          echo "is_dry_run=${{ github.event.inputs.dry_run }}" >> $GITHUB_OUTPUT
-          echo "should_create_release=${{ github.event.inputs.create_release }}" >> $GITHUB_OUTPUT
-        else
-          echo "is_dry_run=false" >> $GITHUB_OUTPUT
-          echo "should_create_release=false" >> $GITHUB_OUTPUT
-        fi
-    
-    - name: Get version
-      id: version
-      run: |
-        if [[ -n "${{ github.event.inputs.version }}" ]]; then
-          VERSION="${{ github.event.inputs.version }}"
-        else
-          VERSION=$(ruby -r ./lib/whodunit/version.rb -e "puts Whodunit::VERSION")
-        fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Detected version: $VERSION"
-    
-    - name: Validate version format
-      run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
-          echo "❌ Invalid version format: $VERSION"
-          echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
-          exit 1
-        fi
-        echo "✅ Version format is valid: $VERSION"
-    
-    - name: Check if version already exists
-      run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        if gem search whodunit -a | grep -q "whodunit ($VERSION)"; then
-          echo "❌ Version $VERSION already exists on RubyGems"
-          if [[ "${{ steps.config.outputs.is_dry_run }}" != "true" ]]; then
-            exit 1
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Configure release parameters
+        id: config
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "is_dry_run=${{ github.event.inputs.dry_run }}" >> $GITHUB_OUTPUT
+            echo "should_create_release=${{ github.event.inputs.create_release }}" >> $GITHUB_OUTPUT
           else
-            echo "Continuing with dry run..."
+            echo "is_dry_run=false" >> $GITHUB_OUTPUT
+            echo "should_create_release=false" >> $GITHUB_OUTPUT
           fi
-        else
-          echo "✅ Version $VERSION is available"
-        fi
-    
-    - name: Run full test suite
-      run: bundle exec rspec
-    
-    - name: Run RuboCop
-      run: bundle exec rubocop
-    
-    - name: Check documentation coverage
-      run: |
-        bundle exec yard doc
-        DOC_COVERAGE=$(bundle exec yard stats --list-undoc | grep "100.00% documented" || echo "incomplete")
-        if [[ "$DOC_COVERAGE" != *"100.00% documented"* ]]; then
-          echo "❌ Documentation coverage is not 100%"
-          exit 1
-        fi
-        echo "✅ Documentation coverage is 100%"
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(ruby -r ./lib/whodunit/version.rb -e "puts Whodunit::VERSION")
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
+            exit 1
+          fi
+          echo "✅ Version format is valid: $VERSION"
+
+      - name: Check if version already exists
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if gem search whodunit -a | grep -q "whodunit ($VERSION)"; then
+            echo "❌ Version $VERSION already exists on RubyGems"
+            if [[ "${{ steps.config.outputs.is_dry_run }}" != "true" ]]; then
+              exit 1
+            else
+              echo "Continuing with dry run..."
+            fi
+          else
+            echo "✅ Version $VERSION is available"
+          fi
+
+      - name: Run full test suite
+        run: bundle exec rspec
+
+      - name: Run RuboCop
+        run: bundle exec rubocop
+
+      - name: Check documentation coverage
+        run: |
+          bundle exec yard doc
+          DOC_COVERAGE=$(bundle exec yard stats --list-undoc | grep "100.00% documented" || echo "incomplete")
+          if [[ "$DOC_COVERAGE" != *"100.00% documented"* ]]; then
+            echo "❌ Documentation coverage is not 100%"
+            exit 1
+          fi
+          echo "✅ Documentation coverage is 100%"
 
   build:
     runs-on: ubuntu-latest
     needs: validate
     outputs:
       gem_file: ${{ steps.build.outputs.gem_file }}
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ env.RUBY_VERSION }}
-        bundler-cache: true
-    
-    - name: Update version if specified
-      if: github.event.inputs.version != ''
-      run: |
-        VERSION="${{ github.event.inputs.version }}"
-        sed -i "s/VERSION = \".*\"/VERSION = \"$VERSION\"/" lib/whodunit/version.rb
-        echo "Updated version to: $VERSION"
-    
-    - name: Build gem
-      id: build
-      run: |
-        bundle exec gem build whodunit.gemspec
-        GEM_FILE=$(ls whodunit-*.gem)
-        echo "gem_file=$GEM_FILE" >> $GITHUB_OUTPUT
-        echo "Built gem: $GEM_FILE"
-        
-        # Show gem contents
-        echo "Gem contents:"
-        gem contents "$GEM_FILE" | head -20
-        
-        # Show gem metadata
-        echo "Gem metadata:"
-        gem spec "$GEM_FILE" | grep -E "(name|version|summary|description|homepage)"
-    
-    - name: Test gem installation
-      run: |
-        GEM_FILE="${{ steps.build.outputs.gem_file }}"
-        gem install "$GEM_FILE"
-        ruby -e "require 'whodunit'; puts 'Gem loads successfully'; puts Whodunit::VERSION"
-    
-    - name: Upload gem artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: gem-file
-        path: ${{ steps.build.outputs.gem_file }}
-        retention-days: 30
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Update version if specified
+        if: github.event.inputs.version != ''
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          sed -i "s/VERSION = \".*\"/VERSION = \"$VERSION\"/" lib/whodunit/version.rb
+          echo "Updated version to: $VERSION"
+
+      - name: Build gem
+        id: build
+        run: |
+          bundle exec gem build whodunit.gemspec
+          GEM_FILE=$(ls whodunit-*.gem)
+          echo "gem_file=$GEM_FILE" >> $GITHUB_OUTPUT
+          echo "Built gem: $GEM_FILE"
+
+          # Show gem contents
+          echo "Gem contents:"
+          gem contents "$GEM_FILE" | head -20
+
+          # Show gem metadata
+          echo "Gem metadata:"
+          gem spec "$GEM_FILE" | grep -E "(name|version|summary|description|homepage)"
+
+      - name: Test gem installation
+        run: |
+          GEM_FILE="${{ steps.build.outputs.gem_file }}"
+          gem install "$GEM_FILE"
+          ruby -e "require 'whodunit'; puts 'Gem loads successfully'; puts Whodunit::VERSION"
+
+      - name: Upload gem artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gem-file
+          path: ${{ steps.build.outputs.gem_file }}
+          retention-days: 30
 
   security_scan:
     runs-on: ubuntu-latest
     needs: [validate, build]
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ env.RUBY_VERSION }}
-        bundler-cache: true
-    
-    - name: Download gem artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: gem-file
-    
-    - name: Security scan
-      run: |
-        # Install the built gem for scanning
-        GEM_FILE=$(ls whodunit-*.gem)
-        gem install "$GEM_FILE"
-        
-        # Run bundle audit
-        bundle exec bundle audit check --update || echo "Bundle audit completed"
-        
-        echo "✅ Security scan completed"
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Download gem artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: gem-file
+
+      - name: Security scan
+        run: |
+          # Install the built gem for scanning
+          GEM_FILE=$(ls whodunit-*.gem)
+          gem install "$GEM_FILE"
+
+          # Run bundle audit
+          bundle exec bundle audit check --update || echo "Bundle audit completed"
+
+          echo "✅ Security scan completed"
 
   publish_rubygems:
     runs-on: ubuntu-latest
     needs: [validate, build, security_scan]
     if: needs.validate.outputs.is_dry_run == 'false'
-    environment: release
-    
+    environment:
+      name: release
+      url: https://rubygems.org/whodunit
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ env.RUBY_VERSION }}
-        bundler-cache: true
-    
-    - name: Download gem artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: gem-file
-    
-    - name: Publish to RubyGems
-      env:
-        GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-      run: |
-        mkdir -p ~/.gem
-        echo ":rubygems_api_key: $GEM_HOST_API_KEY" > ~/.gem/credentials
-        chmod 0600 ~/.gem/credentials
-        
-        GEM_FILE=$(ls whodunit-*.gem)
-        echo "Publishing $GEM_FILE to RubyGems..."
-        gem push "$GEM_FILE"
-        echo "✅ Successfully published to RubyGems"
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Download gem artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: gem-file
+
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          mkdir -p ~/.gem
+          echo ":rubygems_api_key: $GEM_HOST_API_KEY" > ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+
+          GEM_FILE=$(ls whodunit-*.gem)
+          echo "Publishing $GEM_FILE to RubyGems..."
+          gem push "$GEM_FILE"
+          echo "✅ Successfully published to RubyGems"
 
   create_github_release:
     runs-on: ubuntu-latest
     needs: [validate, build, security_scan]
     if: needs.validate.outputs.should_create_release == 'true' && needs.validate.outputs.is_dry_run == 'false'
-    
+
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Download gem artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: gem-file
-    
-    - name: Generate changelog
-      id: changelog
-      run: |
-        VERSION="${{ needs.validate.outputs.version }}"
-        
-        # Extract changelog section for this version
-        if [[ -f CHANGELOG.md ]]; then
-          CHANGELOG_CONTENT=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md || echo "")
-          if [[ -z "$CHANGELOG_CONTENT" ]]; then
-            CHANGELOG_CONTENT="See [CHANGELOG.md](CHANGELOG.md) for details."
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download gem artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: gem-file
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          # Extract changelog section for this version
+          if [[ -f CHANGELOG.md ]]; then
+            CHANGELOG_CONTENT=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md || echo "")
+            if [[ -z "$CHANGELOG_CONTENT" ]]; then
+              CHANGELOG_CONTENT="See [CHANGELOG.md](CHANGELOG.md) for details."
+            fi
+          else
+            CHANGELOG_CONTENT="Release notes for version $VERSION"
           fi
-        else
-          CHANGELOG_CONTENT="Release notes for version $VERSION"
-        fi
-        
-        # Save changelog to file (GitHub Actions has multiline output limitations)
-        echo "$CHANGELOG_CONTENT" > changelog.txt
-        echo "Generated changelog for version $VERSION"
-    
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ needs.validate.outputs.version }}
-        release_name: Release v${{ needs.validate.outputs.version }}
-        body_path: changelog.txt
-        draft: false
-        prerelease: ${{ contains(needs.validate.outputs.version, '-') }}
-    
-    - name: Upload gem to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ needs.build.outputs.gem_file }}
-        asset_name: ${{ needs.build.outputs.gem_file }}
-        asset_content_type: application/octet-stream
+
+          # Save changelog to file (GitHub Actions has multiline output limitations)
+          echo "$CHANGELOG_CONTENT" > changelog.txt
+          echo "Generated changelog for version $VERSION"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}
+          release_name: Release v${{ needs.validate.outputs.version }}
+          body_path: changelog.txt
+          draft: false
+          prerelease: ${{ contains(needs.validate.outputs.version, '-') }}
+
+      - name: Upload gem to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ needs.build.outputs.gem_file }}
+          asset_name: ${{ needs.build.outputs.gem_file }}
+          asset_content_type: application/octet-stream
 
   notify:
     runs-on: ubuntu-latest
-    needs: [validate, build, security_scan, publish_rubygems, create_github_release]
+    needs:
+      [validate, build, security_scan, publish_rubygems, create_github_release]
     if: always()
-    
+
     steps:
-    - name: Release summary
-      run: |
-        VERSION="${{ needs.validate.outputs.version }}"
-        DRY_RUN="${{ needs.validate.outputs.is_dry_run }}"
-        
-        echo "## Release Summary"
-        echo "- Version: $VERSION"
-        echo "- Dry Run: $DRY_RUN"
-        echo "- Validation: ${{ needs.validate.result }}"
-        echo "- Build: ${{ needs.build.result }}"
-        echo "- Security Scan: ${{ needs.security_scan.result }}"
-        
-        if [[ "$DRY_RUN" == "false" ]]; then
-          echo "- RubyGems Publish: ${{ needs.publish_rubygems.result }}"
-          echo "- GitHub Release: ${{ needs.create_github_release.result }}"
-          
-          if [[ "${{ needs.publish_rubygems.result }}" == "success" ]]; then
-            echo "✅ Successfully released version $VERSION to RubyGems!"
-            echo "📦 Install with: gem install whodunit -v $VERSION"
+      - name: Release summary
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          DRY_RUN="${{ needs.validate.outputs.is_dry_run }}"
+
+          echo "## Release Summary"
+          echo "- Version: $VERSION"
+          echo "- Dry Run: $DRY_RUN"
+          echo "- Validation: ${{ needs.validate.result }}"
+          echo "- Build: ${{ needs.build.result }}"
+          echo "- Security Scan: ${{ needs.security_scan.result }}"
+
+          if [[ "$DRY_RUN" == "false" ]]; then
+            echo "- RubyGems Publish: ${{ needs.publish_rubygems.result }}"
+            echo "- GitHub Release: ${{ needs.create_github_release.result }}"
+
+            if [[ "${{ needs.publish_rubygems.result }}" == "success" ]]; then
+              echo "✅ Successfully released version $VERSION to RubyGems!"
+              echo "📦 Install with: gem install whodunit -v $VERSION"
+            else
+              echo "❌ Failed to publish to RubyGems"
+            fi
           else
-            echo "❌ Failed to publish to RubyGems"
+            echo "🏃 Dry run completed successfully!"
+            echo "To perform actual release, run workflow with dry_run=false"
           fi
-        else
-          echo "🏃 Dry run completed successfully!"
-          echo "To perform actual release, run workflow with dry_run=false"
-        fi
