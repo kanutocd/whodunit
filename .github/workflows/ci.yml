@@ -38,16 +38,6 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: false
-
-      - name: Install dependencies
-        run: |
-          if [[ "${{ matrix.ruby-version }}" == "3.0" || "${{ matrix.ruby-version }}" == "3.1" ]]; then
-            gem install bundler -v 2.6.9
-            bundle _2.6.9_ install
-          else
-            bundle install
-          fi
-
       - name: Run tests
         run: bundle exec rspec
 
