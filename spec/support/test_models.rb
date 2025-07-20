@@ -88,6 +88,20 @@ class MockActiveRecord
     # Mock destroy
     self
   end
+
+  def has_attribute?(attr_name)
+    self.class.column_names.include?(attr_name.to_s)
+  end
+
+  def attribute_changed?(_attr_name)
+    # Mock implementation - can be overridden in tests
+    false
+  end
+
+  def attribute_was(_attr_name)
+    # Mock implementation - can be overridden in tests
+    nil
+  end
 end
 
 # Model with soft delete

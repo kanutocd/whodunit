@@ -35,6 +35,20 @@ require "whodunit"
 # Load test support files
 Dir[File.expand_path("support/**/*.rb", __dir__)].each { |f| require f }
 
+# Store original configuration values to prevent test pollution
+ORIGINAL_WHODUNIT_CONFIG = {
+  user_class: "User",
+  creator_column: :creator_id,
+  updater_column: :updater_id,
+  deleter_column: :deleter_id,
+  soft_delete_column: nil,
+  auto_inject_whodunit_stamps: true,
+  column_data_type: :bigint,
+  creator_column_type: nil,
+  updater_column_type: nil,
+  deleter_column_type: nil
+}.freeze
+
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
@@ -53,8 +67,13 @@ RSpec.configure do |config|
   # Filter out any specs with :focus tag unless specifically running them
   config.filter_run_when_matching :focus
 
-  # Clean up after each test
+  # Clean up after each test - reset to known defaults
   config.after do
     Whodunit::Current.reset
+
+    # Restore original configuration to prevent test pollution
+    ORIGINAL_WHODUNIT_CONFIG.each do |key, value|
+      Whodunit.public_send("#{key}=", value)
+    end
   end
 end

@@ -23,8 +23,12 @@ RSpec.describe Whodunit do
       expect(described_class.deleter_column_type).to be_nil
     end
 
-    it "has auto-detect enabled by default" do
-      expect(described_class.auto_detect_soft_delete).to be(true)
+    it "has default soft delete column configured" do
+      expect(described_class.soft_delete_column).to be_nil
+    end
+
+    it "has auto-injection enabled by default" do
+      expect(described_class.auto_inject_whodunit_stamps).to be(true)
     end
 
     it "allows configuration" do
@@ -85,6 +89,140 @@ RSpec.describe Whodunit do
 
       # Reset for other tests
       described_class.column_data_type = :bigint
+    end
+  end
+
+  describe ".soft_delete_enabled?" do
+    it "returns false when soft_delete_column is nil" do
+      original_soft_delete_column = described_class.soft_delete_column
+      described_class.soft_delete_column = nil
+
+      expect(described_class.soft_delete_enabled?).to be false
+
+      described_class.soft_delete_column = original_soft_delete_column
+    end
+
+    it "returns true when soft_delete_column is configured" do
+      original_soft_delete_column = described_class.soft_delete_column
+      described_class.soft_delete_column = :deleted_at
+
+      expect(described_class.soft_delete_enabled?).to be true
+
+      described_class.soft_delete_column = original_soft_delete_column
+    end
+  end
+
+  describe "column enabling/disabling" do
+    describe ".creator_enabled?" do
+      it "returns true when creator_column is not nil" do
+        original_creator_column = described_class.creator_column
+        described_class.creator_column = :created_by_id
+
+        expect(described_class.creator_enabled?).to be true
+
+        described_class.creator_column = original_creator_column
+      end
+
+      it "returns false when creator_column is nil" do
+        original_creator_column = described_class.creator_column
+        described_class.creator_column = nil
+
+        expect(described_class.creator_enabled?).to be false
+
+        described_class.creator_column = original_creator_column
+      end
+    end
+
+    describe ".updater_enabled?" do
+      it "returns true when updater_column is not nil" do
+        original_updater_column = described_class.updater_column
+        described_class.updater_column = :updated_by_id
+
+        expect(described_class.updater_enabled?).to be true
+
+        described_class.updater_column = original_updater_column
+      end
+
+      it "returns false when updater_column is nil" do
+        original_updater_column = described_class.updater_column
+        described_class.updater_column = nil
+
+        expect(described_class.updater_enabled?).to be false
+
+        described_class.updater_column = original_updater_column
+      end
+    end
+
+    describe ".deleter_enabled?" do
+      it "returns true when deleter_column is not nil" do
+        original_deleter_column = described_class.deleter_column
+        described_class.deleter_column = :deleted_by_id
+
+        expect(described_class.deleter_enabled?).to be true
+
+        described_class.deleter_column = original_deleter_column
+      end
+
+      it "returns false when deleter_column is nil" do
+        original_deleter_column = described_class.deleter_column
+        described_class.deleter_column = nil
+
+        expect(described_class.deleter_enabled?).to be false
+
+        described_class.deleter_column = original_deleter_column
+      end
+    end
+  end
+
+  describe "configuration validation" do
+    it "allows disabling creator_column if updater_column is enabled" do
+      expect do
+        described_class.configure do |config|
+          config.creator_column = nil
+          config.updater_column = :updated_by_id
+        end
+      end.not_to raise_error
+
+      # Reset for other tests
+      described_class.creator_column = :creator_id
+      described_class.updater_column = :updater_id
+    end
+
+    it "allows disabling updater_column if creator_column is enabled" do
+      expect do
+        described_class.configure do |config|
+          config.creator_column = :created_by_id
+          config.updater_column = nil
+        end
+      end.not_to raise_error
+
+      # Reset for other tests
+      described_class.creator_column = :creator_id
+      described_class.updater_column = :updater_id
+    end
+
+    it "raises error when both creator_column and updater_column are nil" do
+      expect do
+        described_class.configure do |config|
+          config.creator_column = nil
+          config.updater_column = nil
+        end
+      end.to raise_error(Whodunit::Error, /At least one of creator_column or updater_column must be configured/)
+
+      # Reset for other tests
+      described_class.creator_column = :creator_id
+      described_class.updater_column = :updater_id
+    end
+
+    it "allows disabling deleter_column independently" do
+      expect do
+        described_class.configure do |config|
+          config.deleter_column = nil
+        end
+      end.not_to raise_error
+
+      # Reset for other tests
+      described_class.deleter_column = :deleter_id
     end
   end
 end

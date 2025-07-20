@@ -36,78 +36,121 @@ module Whodunit
   #   end
   #
   # @since 0.1.0
+  # rubocop:disable Metrics/ModuleLength
   module Stampable
     extend ActiveSupport::Concern
 
     included do
-      # Set up callbacks
+      # Set up callbacks - the if conditions will check per-model settings at runtime
       before_create :set_whodunit_creator, if: :creator_column?
       before_update :set_whodunit_updater, if: :updater_column?
 
-      # Only add destroy callback if soft-delete is detected
-      if Whodunit.auto_detect_soft_delete &&
-         Whodunit::SoftDeleteDetector.enabled_for?(self)
-        before_destroy :set_whodunit_deleter, if: :deleter_column?
-      end
+      # Add deleter tracking for both hard and soft deletes
+      # The if conditions will check per-model settings at runtime
+      before_destroy :set_whodunit_deleter, if: :deleter_column?
+      before_update :set_whodunit_deleter, if: :being_soft_deleted?
 
       # Set up associations - call on the class
       setup_whodunit_associations
     end
 
     class_methods do # rubocop:disable Metrics/BlockLength
+      # Per-model configuration storage
+      attr_accessor :whodunit_config_overrides
+
+      # Configure per-model settings
+      def whodunit_config
+        @whodunit_config_overrides ||= {}
+        yield @whodunit_config_overrides if block_given?
+        @whodunit_config_overrides
+      end
+
       def soft_delete_enabled?
-        @soft_delete_enabled ||= Whodunit::SoftDeleteDetector.enabled_for?(self)
+        @soft_delete_enabled ||= model_soft_delete_enabled?
       end
 
       def enable_whodunit_deleter!
         before_destroy :set_whodunit_deleter, if: :deleter_column?
+        before_update :set_whodunit_deleter, if: :being_soft_deleted?
         setup_deleter_association
         @soft_delete_enabled = true
       end
 
       def disable_whodunit_deleter!
         skip_callback :destroy, :before, :set_whodunit_deleter
+        skip_callback :update, :before, :set_whodunit_deleter
         @soft_delete_enabled = false
+      end
+
+      # Get effective configuration value (model override or global default)
+      def whodunit_setting(key)
+        return @whodunit_config_overrides[key] if @whodunit_config_overrides&.key?(key)
+
+        Whodunit.public_send(key)
+      end
+
+      # Check if creator column is enabled for this model
+      def model_creator_enabled?
+        creator_column = whodunit_setting(:creator_column)
+        !creator_column.nil?
+      end
+
+      # Check if updater column is enabled for this model
+      def model_updater_enabled?
+        updater_column = whodunit_setting(:updater_column)
+        !updater_column.nil?
+      end
+
+      # Check if deleter column is enabled for this model
+      def model_deleter_enabled?
+        deleter_column = whodunit_setting(:deleter_column)
+        !deleter_column.nil?
+      end
+
+      # Check if soft delete is enabled for this model
+      def model_soft_delete_enabled?
+        soft_delete_column = whodunit_setting(:soft_delete_column)
+        !soft_delete_column.nil?
       end
 
       private
 
       def setup_whodunit_associations
-        setup_creator_association if creator_column_exists?
-        setup_updater_association if updater_column_exists?
-        setup_deleter_association if deleter_column_exists? && soft_delete_enabled?
+        setup_creator_association if creator_column_exists? && model_creator_enabled?
+        setup_updater_association if updater_column_exists? && model_updater_enabled?
+        setup_deleter_association if deleter_column_exists? && model_deleter_enabled? && soft_delete_enabled?
       end
 
       def creator_column_exists?
-        column_names.include?(Whodunit.creator_column.to_s)
+        model_creator_enabled? && column_names.include?(whodunit_setting(:creator_column).to_s)
       end
 
       def updater_column_exists?
-        column_names.include?(Whodunit.updater_column.to_s)
+        model_updater_enabled? && column_names.include?(whodunit_setting(:updater_column).to_s)
       end
 
       def deleter_column_exists?
-        column_names.include?(Whodunit.deleter_column.to_s)
+        model_deleter_enabled? && column_names.include?(whodunit_setting(:deleter_column).to_s)
       end
 
       def setup_creator_association
         belongs_to :creator,
-                   class_name: Whodunit.user_class_name,
-                   foreign_key: Whodunit.creator_column,
+                   class_name: whodunit_setting(:user_class).to_s,
+                   foreign_key: whodunit_setting(:creator_column),
                    optional: true
       end
 
       def setup_updater_association
         belongs_to :updater,
-                   class_name: Whodunit.user_class_name,
-                   foreign_key: Whodunit.updater_column,
+                   class_name: whodunit_setting(:user_class).to_s,
+                   foreign_key: whodunit_setting(:updater_column),
                    optional: true
       end
 
       def setup_deleter_association
         belongs_to :deleter,
-                   class_name: Whodunit.user_class_name,
-                   foreign_key: Whodunit.deleter_column,
+                   class_name: whodunit_setting(:user_class).to_s,
+                   foreign_key: whodunit_setting(:deleter_column),
                    optional: true
       end
     end
@@ -124,61 +167,98 @@ module Whodunit
     def set_whodunit_creator
       return unless Whodunit::Current.user_id
 
-      self[Whodunit.creator_column] = Whodunit::Current.user_id
+      self[self.class.whodunit_setting(:creator_column)] = Whodunit::Current.user_id
     end
 
     # Set the updater ID when a record is updated.
     #
     # This method is automatically called before_update if the model has an updater column.
     # It sets the updater_id to the current user from Whodunit::Current.
-    # Does not run on new records (creation).
+    # Does not run on new records (creation) or during soft-delete operations.
     #
     # @return [void]
     # @api private
     def set_whodunit_updater
       return unless Whodunit::Current.user_id
+
       return if new_record? # Don't set updater on creation
 
-      self[Whodunit.updater_column] = Whodunit::Current.user_id
+      return if being_soft_deleted? # Don't set updater during soft-delete
+
+      self[self.class.whodunit_setting(:updater_column)] = Whodunit::Current.user_id
     end
 
-    # Set the deleter ID when a record is destroyed.
+    # Set the deleter ID when a record is destroyed or soft-deleted.
     #
-    # This method is automatically called before_destroy if the model has a deleter column
-    # and soft-delete is enabled. It sets the deleter_id to the current user from Whodunit::Current.
+    # This method is automatically called in two scenarios:
+    # 1. before_destroy for hard deletes (if deleter column exists)
+    # 2. before_update for soft-deletes (when being_soft_deleted? returns true)
+    #
+    # It sets the deleter_id to the current user from Whodunit::Current.
     #
     # @return [void]
     # @api private
     def set_whodunit_deleter
       return unless Whodunit::Current.user_id
 
-      self[Whodunit.deleter_column] = Whodunit::Current.user_id
+      self[self.class.whodunit_setting(:deleter_column)] = Whodunit::Current.user_id
     end
 
     # @!group Column Presence Checks
 
-    # Check if the model has a creator column.
+    # Check if the model has a creator column and it's enabled.
     #
-    # @return [Boolean] true if the creator column exists
+    # @return [Boolean] true if the creator column exists and is enabled
     # @api private
     def creator_column?
-      self.class.column_names.include?(Whodunit.creator_column.to_s)
+      return false unless self.class.model_creator_enabled?
+
+      column_name = self.class.whodunit_setting(:creator_column).to_s
+      self.class.column_names.include?(column_name)
     end
 
-    # Check if the model has an updater column.
+    # Check if the model has an updater column and it's enabled.
     #
-    # @return [Boolean] true if the updater column exists
+    # @return [Boolean] true if the updater column exists and is enabled
     # @api private
     def updater_column?
-      self.class.column_names.include?(Whodunit.updater_column.to_s)
+      return false unless self.class.model_updater_enabled?
+
+      column_name = self.class.whodunit_setting(:updater_column).to_s
+      self.class.column_names.include?(column_name)
     end
 
-    # Check if the model has a deleter column.
+    # Check if the model has a deleter column and it's enabled.
     #
-    # @return [Boolean] true if the deleter column exists
+    # @return [Boolean] true if the deleter column exists and is enabled
     # @api private
     def deleter_column?
-      self.class.column_names.include?(Whodunit.deleter_column.to_s)
+      return false unless self.class.model_deleter_enabled?
+
+      column_name = self.class.whodunit_setting(:deleter_column).to_s
+      self.class.column_names.include?(column_name)
+    end
+
+    # Check if the current update operation is a soft-delete.
+    #
+    # Uses ActiveRecord's dirty tracking to detect if any soft-delete columns
+    # are being changed from nil to a timestamp, which indicates a soft-delete operation.
+    #
+    # @return [Boolean] true if this update is setting a soft-delete timestamp
+    # @api private
+    def being_soft_deleted?
+      return false unless deleter_column?
+      return false unless Whodunit::Current.user_id
+
+      soft_delete_column = self.class.whodunit_setting(:soft_delete_column)
+      return false unless soft_delete_column
+
+      # Simple: just check the configured soft-delete column
+      column_name = soft_delete_column.to_s
+      attribute_changed?(column_name) &&
+        attribute_was(column_name).nil? &&
+        !send(column_name).nil?
     end
   end
+  # rubocop:enable Metrics/ModuleLength
 end

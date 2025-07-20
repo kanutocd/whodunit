@@ -3,10 +3,10 @@
 require "active_support/all"
 require_relative "whodunit/version"
 require_relative "whodunit/current"
-require_relative "whodunit/soft_delete_detector"
 require_relative "whodunit/stampable"
 require_relative "whodunit/migration_helpers"
 require_relative "whodunit/controller_methods"
+require_relative "whodunit/table_definition_extension"
 require_relative "whodunit/railtie"
 
 # Lightweight creator/updater/deleter tracking for ActiveRecord models.
@@ -55,9 +55,15 @@ module Whodunit
   # @return [Symbol] the deleter column name
   mattr_accessor :deleter_column, default: :deleter_id
 
-  # Whether to automatically detect soft-delete implementations (default: true)
-  # @return [Boolean] auto-detection setting
-  mattr_accessor :auto_detect_soft_delete, default: true
+  # The column name used for soft-delete timestamps (default: nil)
+  # Set to a column name to enable soft-delete support (e.g., :deleted_at, :discarded_at)
+  # Set to nil to disable soft-delete support entirely
+  # @return [Symbol, nil] the soft-delete column name
+  mattr_accessor :soft_delete_column, default: nil
+
+  # Whether to automatically add whodunit_stamps to create_table migrations (default: true)
+  # @return [Boolean] auto-injection setting
+  mattr_accessor :auto_inject_whodunit_stamps, default: true
 
   # @!group Data Type Configuration
 
@@ -88,8 +94,10 @@ module Whodunit
   #
   # @yield [self] configuration block
   # @return [void]
+  # @raise [Whodunit::Error] if both creator_column and updater_column are set to nil
   def self.configure
     yield self
+    validate_column_configuration!
   end
 
   # Get the user class name as a string
@@ -117,5 +125,39 @@ module Whodunit
   # @return [Symbol] the deleter column data type
   def self.deleter_data_type
     deleter_column_type || column_data_type
+  end
+
+  # Check if soft-delete is enabled
+  # @return [Boolean] true if soft-delete is configured (soft_delete_column is not nil)
+  def self.soft_delete_enabled?
+    !soft_delete_column.nil?
+  end
+
+  # Check if creator column is enabled
+  # @return [Boolean] true if creator_column is not nil
+  def self.creator_enabled?
+    !creator_column.nil?
+  end
+
+  # Check if updater column is enabled
+  # @return [Boolean] true if updater_column is not nil
+  def self.updater_enabled?
+    !updater_column.nil?
+  end
+
+  # Check if deleter column is enabled
+  # @return [Boolean] true if deleter_column is not nil
+  def self.deleter_enabled?
+    !deleter_column.nil?
+  end
+
+  # Validate that column configuration is valid
+  # @raise [Whodunit::Error] if both creator_column and updater_column are nil
+  def self.validate_column_configuration!
+    return if creator_enabled? || updater_enabled?
+
+    raise Whodunit::Error,
+          "At least one of creator_column or updater_column must be configured (not nil). " \
+          "Setting both to nil would disable all stamping functionality."
   end
 end

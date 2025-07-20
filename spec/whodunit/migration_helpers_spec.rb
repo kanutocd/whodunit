@@ -85,14 +85,19 @@ RSpec.describe Whodunit::MigrationHelpers do
       )
     end
 
-    it "auto-detects deleter need when soft-delete columns exist" do
-      migration.existing_tables = [:users]
-      migration.set_existing_columns(:users, [:deleted_at])
+    it "auto-detects deleter need when soft-delete is configured" do
+      # Configure soft delete column to enable soft delete support
+      original_soft_delete_column = Whodunit.soft_delete_column
+      Whodunit.soft_delete_column = :deleted_at
+
       migration.add_whodunit_stamps(:users, include_deleter: :auto)
 
       expect(migration.added_columns).to include(
         { table: :users, column: :deleter_id, type: :bigint, options: { null: true } }
       )
+
+      # Restore original configuration
+      Whodunit.soft_delete_column = original_soft_delete_column
     end
 
     it "does not add deleter column when no soft-delete detected" do
@@ -122,13 +127,19 @@ RSpec.describe Whodunit::MigrationHelpers do
     end
 
     it "removes deleter column when it exists and should be included" do
-      migration.existing_tables = [:users]
-      migration.set_existing_columns(:users, %i[creator_id updater_id deleter_id deleted_at])
+      # Configure soft delete column to enable soft delete support
+      original_soft_delete_column = Whodunit.soft_delete_column
+      Whodunit.soft_delete_column = :deleted_at
+
+      migration.set_existing_columns(:users, %i[creator_id updater_id deleter_id])
       migration.remove_whodunit_stamps(:users, include_deleter: :auto)
 
       expect(migration.removed_columns).to include(
         { table: :users, column: :deleter_id }
       )
+
+      # Restore original configuration
+      Whodunit.soft_delete_column = original_soft_delete_column
     end
   end
 
@@ -180,26 +191,37 @@ RSpec.describe Whodunit::MigrationHelpers do
   describe "private helper methods" do
     describe "#should_include_deleter?" do
       it "returns true when include_deleter is true" do
-        result = migration.send(:should_include_deleter?, :users, true)
+        result = migration.send(:should_include_deleter?, true)
         expect(result).to be true
       end
 
       it "returns false when include_deleter is false" do
-        result = migration.send(:should_include_deleter?, :users, false)
+        result = migration.send(:should_include_deleter?, false)
         expect(result).to be false
       end
 
-      it "auto-detects based on table columns when include_deleter is :auto" do
-        migration.existing_tables = [:users]
-        migration.set_existing_columns(:users, [:deleted_at])
+      it "auto-detects based on configuration when include_deleter is :auto" do
+        # Configure soft delete column to enable soft delete support
+        original_soft_delete_column = Whodunit.soft_delete_column
+        Whodunit.soft_delete_column = :deleted_at
 
-        result = migration.send(:should_include_deleter?, :users, :auto)
+        result = migration.send(:should_include_deleter?, :auto)
         expect(result).to be true
+
+        # Restore original configuration
+        Whodunit.soft_delete_column = original_soft_delete_column
       end
 
-      it "returns false for auto-detect when table doesn't exist" do
-        result = migration.send(:should_include_deleter?, :nonexistent, :auto)
+      it "returns false for auto-detect when soft delete is not configured" do
+        # Ensure soft delete is not configured
+        original_soft_delete_column = Whodunit.soft_delete_column
+        Whodunit.soft_delete_column = nil
+
+        result = migration.send(:should_include_deleter?, :auto)
         expect(result).to be false
+
+        # Restore original configuration
+        Whodunit.soft_delete_column = original_soft_delete_column
       end
     end
 
