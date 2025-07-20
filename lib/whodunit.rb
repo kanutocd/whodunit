@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
-require "active_support/all"
+require "active_support/lazy_load_hooks"
+require "active_support/concern"
+require "active_support/current_attributes"
+require "active_support/core_ext/module/attribute_accessors"
+require "active_support/core_ext/object/blank"
+require "active_support/core_ext/string/inflections"
 require_relative "whodunit/version"
 require_relative "whodunit/current"
 require_relative "whodunit/soft_delete_detector"
