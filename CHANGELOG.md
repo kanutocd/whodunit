@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - YARD documentation for API reference
 - RuboCop integration for code style enforcement
 - SimpleCov integration for test coverage tracking
-- Github CI workflow with ruby version matrix strategy for 3.1.0=>6.1, 3.2.0=>7.2, 3.3.0=>8.0.2, 3.4.4=>edge
+- Github CI workflow with ruby version matrix strategy for 3.1.1=>6.1, 3.2.0=>7.2, 3.3.0=>8.0.2, 3.4.4=>edge
 - Github CD (Release) workflow on version release and manual via workflow dispatch dry-run support
 - Documentation deployment Github pages workflow/pipeline
 
