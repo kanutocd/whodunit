@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative "../lib/whodunit/generator"
+
+# Parse command line arguments
+command = ARGV[0]
+
+case command
+when "install"
+  Whodunit::Generator.install_initializer
+when "help", "--help", "-h", nil
+  puts Whodunit::Generator.help_message
+else
+  puts "Unknown command: #{command}"
+  puts Whodunit::Generator.help_message
+  exit 1
+end

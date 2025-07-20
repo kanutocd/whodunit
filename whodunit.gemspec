@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Lightweight creator/updater/deleter tracking for ActiveRecord models"
   spec.description = "A lightweight Rails gem that provides simple auditing by tracking who created, updated, and " \
-                     "deleted ActiveRecord models. Features smart soft-delete detection and zero performance overhead."
+                     "deleted ActiveRecord models."
   spec.homepage = "https://github.com/kanutocd/whodunit"
   spec.license = "MIT"
   spec.required_ruby_version = "> 3.1"
@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
   spec.metadata["source_code_uri"] = "https://github.com/kanutocd/whodunit.git"
   spec.metadata["changelog_uri"] = "https://github.com/kanutocd/whodunit/blob/main/CHANGELOG.md"
   spec.metadata["bug_tracker_uri"] = "https://github.com/kanutocd/whodunit/issues"
-  spec.metadata["documentation_uri"] = "https://github.com/kanutocd/whodunit/blob/main/README.md"
+  spec.metadata["documentation_uri"] = "https://kanutocd.github.io/whodunit"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.
