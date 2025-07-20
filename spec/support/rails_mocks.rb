@@ -21,7 +21,7 @@ unless defined?(Rails)
   end
 
   module ActiveSupport
-    def self.on_load(component, &block)
+    def self.on_load(component, &)
       # Mock - in real Rails this would call the block when the component is loaded
     end
   end

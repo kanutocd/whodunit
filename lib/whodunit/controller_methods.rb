@@ -147,8 +147,8 @@ module Whodunit
     #   without_whodunit_user do
     #     Post.bulk_import(data)  # No creator_id will be set
     #   end
-    def without_whodunit_user(&block)
-      with_whodunit_user(nil, &block)
+    def without_whodunit_user(&)
+      with_whodunit_user(nil, &)
     end
 
     class_methods do
