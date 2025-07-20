@@ -106,14 +106,25 @@ user.updater   # => User who last updated this record
 user.deleter   # => User who deleted this record (if soft-delete enabled)
 ```
 
-## Smart Soft-Delete Detection
+## Soft-Delete Support
 
-Whodunit automatically detects popular soft-delete solutions:
+Whodunit automatically tracks who deleted records when using soft-delete. Simply configure your soft-delete column:
 
-- **Discard** (`gem 'discard'`)
-- **Paranoia** (`gem 'paranoia'`)
-- **ActsAsParanoid** (`gem 'acts_as_paranoid'`)
-- **Custom implementations** with timestamp columns like `deleted_at`, `discarded_at`, etc.
+```ruby
+# Most common soft-delete column (default)
+config.soft_delete_column = :deleted_at
+
+# For Discard gem users
+config.soft_delete_column = :discarded_at
+
+# For custom implementations
+config.soft_delete_column = :archived_at
+
+# Disable soft-delete support
+config.soft_delete_column = nil
+```
+
+When configured, Whodunit will automatically add the `deleter_id` column to migrations when the soft-delete column is detected in your table.
 
 ## Configuration
 
@@ -124,7 +135,8 @@ Whodunit.configure do |config|
   config.creator_column = :created_by_id    # Default: :creator_id
   config.updater_column = :updated_by_id    # Default: :updater_id
   config.deleter_column = :deleted_by_id    # Default: :deleter_id
-  config.auto_detect_soft_delete = false   # Default: true
+  config.soft_delete_column = :discarded_at # Default: nil
+  config.auto_inject_whodunit_stamps = false # Default: true
 
   # Column data type configuration
   config.column_data_type = :integer       # Default: :bigint (applies to all columns)
@@ -141,6 +153,46 @@ By default, all stamp columns use `:bigint` data type. You can customize this in
 - **Global**: Set `column_data_type` to change the default for all columns
 - **Individual**: Set specific column types to override the global default
 - **Per-migration**: Override types on a per-migration basis (see Migration Helpers)
+
+### Automatic Injection (Rails Integration)
+
+By default, Whodunit automatically adds stamp columns to your migrations, just like how Rails automatically handles `timestamps`:
+
+```ruby
+# Automatic injection is enabled by default!
+# Your migrations automatically get whodunit stamps:
+class CreatePosts < ActiveRecord::Migration[8.0]
+  def change
+    create_table :posts do |t|
+      t.string :title
+      t.text :body
+      t.timestamps
+      # t.whodunit_stamps automatically added after t.timestamps!
+    end
+  end
+end
+
+# Disable automatic injection globally:
+Whodunit.configure do |config|
+  config.auto_inject_whodunit_stamps = false
+end
+
+# Skip auto-injection for specific tables:
+create_table :system_logs do |t|
+  t.string :message
+  t.timestamps skip_whodunit_stamps: true
+end
+
+# Or add manually if you want specific options:
+create_table :posts do |t|
+  t.string :title
+  t.whodunit_stamps include_deleter: true  # Manual override
+  t.timestamps
+  # No auto-injection since already added manually
+end
+```
+
+This feature respects soft-delete auto-detection and includes the deleter column when appropriate.
 
 ## Manual User Setting
 

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-01-20
+
+### Added
+
+- New `whodunit install` CLI command to generate configuration initializer
+- Per-model configuration override capability via `whodunit_config` block
+- Column enabling/disabling - set individual columns to `nil` to disable them
+- Configuration validation to prevent disabling both creator and updater columns
+- Comprehensive generator with Rails app detection and safety prompts
+- Enhanced YARD documentation reflecting simplified architecture
+
+### Changed
+
+- **BREAKING**: `soft_delete_column` now defaults to `nil` instead of `:deleted_at`
+- **BREAKING**: Removed automatic soft-delete detection - now purely configuration-based
+- **BREAKING**: Simplified `being_soft_deleted?` logic to check only configured column
+- Migration helpers now respect column enabling/disabling configuration
+- Updated all documentation to reflect simplified, configuration-based approach
+- Improved test infrastructure with better configuration isolation
+
+### Removed
+
+- **BREAKING**: `SoftDeleteDetector` class and all auto-detection logic
+- **BREAKING**: `SOFT_DELETE_COLUMNS` constant and pattern-matching detection
+- Complex database schema introspection for soft-delete detection
+
+### Performance
+
+- Eliminated expensive auto-detection queries during model initialization
+- Reduced computational overhead by trusting user configuration
+- Simplified callback and association setup based on explicit configuration
+
+## [0.1.0] - 2025-01-15
+
 ### Added
 
 - Initial release of Whodunit gem
@@ -36,9 +70,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Rails 7.2+
 - Ruby 3.1+
-
-## [0.1.0] - TBD
-
-### Added
-
-- Initial gem structure and basic functionality
