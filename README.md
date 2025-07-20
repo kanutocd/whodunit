@@ -11,7 +11,7 @@ Whodunit provides simple auditing for Rails applications by tracking who created
 ## Requirements
 
 - Ruby 3.1.1+ (tested on 3.1.1, 3.2.0, 3.3.0, 3.4). See the [the ruby-version matrix strategy of the CI workflow](https://github.com/kanutocd/whodunit/blob/main/.github/workflows/ci.yml#L15).
-- Rails 6.1+ (tested on 6.1, 7.0, 7.1, 8.0)
+- Rails 7.2+ (tested on 7.2, 8.2, and edge)
 - ActiveRecord for database operations
 
 ## Features
@@ -19,7 +19,7 @@ Whodunit provides simple auditing for Rails applications by tracking who created
 - **Lightweight**: Only tracks user IDs, no change history or versioning
 - **Smart Soft-Delete Detection**: Automatically detects Discard, Paranoia, and custom soft-delete implementations
 - **Thread-Safe**: Uses Rails `CurrentAttributes` pattern for user context
-- **Zero Dependencies**: Only requires Rails 6.1+
+- **Zero Dependencies**: Only requires Rails 7.2+
 - **Performance Focused**: No default scopes or method overrides
 
 ## Installation

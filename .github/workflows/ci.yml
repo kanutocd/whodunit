@@ -18,7 +18,7 @@ jobs:
         include:
           # Test against different Rails versions
           - ruby-version: "3.1.1"
-            gemfile: gemfiles/rails_6_1.gemfile
+            gemfile: gemfiles/rails_7_2.gemfile
           - ruby-version: "3.2.0"
             gemfile: gemfiles/rails_7_2.gemfile
           - ruby-version: "3.3.0"
