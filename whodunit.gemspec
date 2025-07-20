@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
                      "deleted ActiveRecord models. Features smart soft-delete detection and zero performance overhead."
   spec.homepage = "https://github.com/kanutocd/whodunit"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.0.0"
+  spec.required_ruby_version = "> 3.1"
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage
