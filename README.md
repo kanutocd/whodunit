@@ -34,6 +34,23 @@ And then execute:
 
     $ bundle install
 
+### What's Next?
+
+After installation, you have a few options:
+
+1. **Generate Configuration & Setup** (Recommended):
+   ```bash
+   whodunit install
+   ```
+   This will:
+   - Create `config/initializers/whodunit.rb` with all available configuration options
+   - Optionally add `Whodunit::Stampable` to your `ApplicationRecord` for automatic stamping on all models
+   - Provide clear next steps for adding stamp columns to your database
+
+2. **Quick Setup**: Jump directly to adding stamp columns to your models (see Quick Start below)
+
+3. **Learn More**: Check the [Complete Documentation](https://kanutocd.github.io/whodunit) for advanced configuration
+
 ## Quick Start
 
 ### 1. Add Stamp Columns

@@ -36,6 +36,27 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  # Post-install message
+  spec.post_install_message = <<~MSG
+    🎉 Thanks for installing Whodunit!
+
+    What's next?
+
+    1. Generate configuration (recommended):
+       whodunit install
+
+    2. Add stamp columns to your models:
+       rails generate migration AddStampsToUsers
+       # Then add: add_whodunit_stamps :users
+
+    3. Include Whodunit::Stampable in your models:
+       class User < ApplicationRecord
+         include Whodunit::Stampable
+       end
+
+    📖 Complete documentation: https://kanutocd.github.io/whodunit
+  MSG
+
   # Runtime dependencies
   spec.add_dependency "activerecord", ">= 7.2"
   spec.add_dependency "activesupport", ">= 7.2"

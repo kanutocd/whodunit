@@ -59,3 +59,4 @@ build-iPhoneSimulator/
 /.history
 .rspec*status
 /mise.toml
+/example

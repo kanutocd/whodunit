@@ -1,10 +1,9 @@
 name: Deploy Documentation
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -42,7 +41,6 @@ jobs:
           path: ${{ env.DOCS_FOLDER }}
 
   deploy:
-    if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

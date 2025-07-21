@@ -13,6 +13,7 @@ AllCops:
     - 'coverage/**/*'
     - 'bin/**/*'
     - 'sig/**/*'
+    - 'example/**/*'
 
 # Layout & Formatting
 Layout/LineLength:

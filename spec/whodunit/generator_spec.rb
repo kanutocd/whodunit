@@ -6,8 +6,8 @@ require_relative "../../lib/whodunit/generator"
 RSpec.describe Whodunit::Generator do
   let(:test_dir) { "test-rails-app" }
   let(:config_dir) { "#{test_dir}/config" }
-  let(:initializers_dir) { "#{test_dir}/config/initializers" }
   let(:initializer_file) { "#{test_dir}/config/initializers/whodunit.rb" }
+  let(:application_record_file) { "#{test_dir}/app/models/application_record.rb" }
 
   before do
     # Clean up any existing test directory
@@ -124,6 +124,160 @@ RSpec.describe Whodunit::Generator do
       expect(help).to include("whodunit help")
       expect(help).to include("Generate config/initializers/whodunit.rb")
       expect(help).to include("https://github.com/kanutocd/whodunit")
+    end
+  end
+
+  describe "ApplicationRecord integration" do
+    let(:application_record_content) do
+      <<~RUBY
+        # frozen_string_literal: true
+
+        class ApplicationRecord < ActiveRecord::Base
+          primary_abstract_class
+        end
+      RUBY
+    end
+
+    before do
+      FileUtils.rm_rf(test_dir)
+      FileUtils.mkdir_p(config_dir)
+      File.write("#{config_dir}/application.rb", "# Mock Rails application")
+      FileUtils.mkdir_p("#{test_dir}/app/models")
+      File.write(application_record_file, application_record_content)
+      Dir.chdir(test_dir)
+    end
+
+    after do
+      Dir.chdir("..")
+      FileUtils.rm_rf(test_dir)
+    end
+
+    context "when user accepts integration" do
+      before { allow($stdin).to receive(:gets).and_return("y\n") }
+
+      it "adds Whodunit::Stampable to ApplicationRecord" do
+        expect { described_class.install_initializer }.to output(
+          /Added Whodunit::Stampable to ApplicationRecord/
+        ).to_stdout
+
+        content = File.read("app/models/application_record.rb")
+        expect(content).to include("include Whodunit::Stampable")
+      end
+
+      it "adds the include after the class definition" do
+        described_class.install_initializer
+
+        content = File.read("app/models/application_record.rb")
+        lines = content.split("\n")
+
+        class_line_index = lines.index { |line| line.include?("class ApplicationRecord") }
+        include_line_index = lines.index { |line| line.include?("include Whodunit::Stampable") }
+
+        expect(include_line_index).to eq(class_line_index + 1)
+      end
+
+      it "shows success message about automatic stamping" do
+        expect { described_class.install_initializer }.to output(
+          /All your models will now automatically include stamping!/
+        ).to_stdout
+      end
+    end
+
+    context "when user declines integration" do
+      before { allow($stdin).to receive(:gets).and_return("n\n") }
+
+      it "does not modify ApplicationRecord" do
+        original_content = File.read("app/models/application_record.rb")
+        described_class.install_initializer
+        content = File.read("app/models/application_record.rb")
+        expect(content).to eq(original_content)
+      end
+
+      it "does not show integration success message" do
+        expect { described_class.install_initializer }.not_to output(
+          /Added Whodunit::Stampable to ApplicationRecord/
+        ).to_stdout
+      end
+    end
+
+    context "when ApplicationRecord already includes Whodunit::Stampable" do
+      let(:application_record_content) do
+        <<~RUBY
+          # frozen_string_literal: true
+
+          class ApplicationRecord < ActiveRecord::Base
+            include Whodunit::Stampable
+            primary_abstract_class
+          end
+        RUBY
+      end
+
+      it "skips integration and shows already included message" do
+        expect { described_class.install_initializer }.to output(
+          /Whodunit::Stampable already included in ApplicationRecord/
+        ).to_stdout
+      end
+
+      it "does not prompt user for integration" do
+        expect { described_class.install_initializer }.not_to output(
+          /Do you want to include Whodunit::Stampable in ApplicationRecord/
+        ).to_stdout
+      end
+    end
+
+    context "when ApplicationRecord has non-standard formatting" do
+      let(:application_record_content) do
+        <<~RUBY
+          class ApplicationRecord<ActiveRecord::Base
+            primary_abstract_class
+          end
+        RUBY
+      end
+
+      before { allow($stdin).to receive(:gets).and_return("y\n") }
+
+      it "uses fallback pattern matching" do
+        expect { described_class.install_initializer }.to output(
+          /Added Whodunit::Stampable to ApplicationRecord/
+        ).to_stdout
+
+        content = File.read("app/models/application_record.rb")
+        expect(content).to include("include Whodunit::Stampable")
+      end
+    end
+
+    context "when ApplicationRecord cannot be parsed" do
+      let(:application_record_content) { "# Malformed or empty file" }
+
+      before { allow($stdin).to receive(:gets).and_return("y\n") }
+
+      it "shows manual integration message" do
+        expect { described_class.install_initializer }.to output(
+          /Could not automatically modify ApplicationRecord/
+        ).to_stdout
+      end
+
+      it "provides manual instructions" do
+        expect { described_class.install_initializer }.to output(
+          /Please manually add: include Whodunit::Stampable/
+        ).to_stdout
+      end
+    end
+
+    context "when ApplicationRecord file does not exist" do
+      before { FileUtils.rm_f("app/models/application_record.rb") }
+
+      it "shows file not found message" do
+        expect { described_class.install_initializer }.to output(
+          %r{ApplicationRecord not found at app/models/application_record\.rb}
+        ).to_stdout
+      end
+
+      it "does not prompt for integration" do
+        expect { described_class.install_initializer }.not_to output(
+          /Do you want to include Whodunit::Stampable/
+        ).to_stdout
+      end
     end
   end
 end

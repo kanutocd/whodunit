@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-01-21
+
+### Added
+
+- **ApplicationRecord Integration**: `whodunit install` now prompts to automatically add `Whodunit::Stampable` to `ApplicationRecord` for convenient all-model stamping
+- **Enhanced Configuration Template**: Detailed explanations and examples for each configuration option in generated initializer
+- **Post-install Message**: Helpful instructions displayed after gem installation via `bundle add whodunit`
+- **Comprehensive Test Coverage**: Full test suite for ApplicationRecord integration with edge case handling
+
+### Changed
+
+- **Improved CLI Experience**: More user-friendly prompts and messages throughout the installation process
+- **Better Documentation**: Updated README with corrected installation commands and new ApplicationRecord feature
+- **Code Organization**: Extracted ApplicationRecord integration logic into separate module for better maintainability
+
+### Fixed
+
+- **Gemspec Consistency**: Corrected post-install message to show `whodunit install` instead of incorrect Rails generator command
+- **RuboCop Compliance**: Fixed all style issues and reduced complexity across codebase
+
 ## [0.2.0] - 2025-01-20
 
 ### Added
