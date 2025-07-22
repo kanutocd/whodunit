@@ -1,5 +1,11 @@
 # Whodunit
 
+[![Gem Version](https://badge.fury.io/rb/whodunit.svg)](https://badge.fury.io/rb/whodunit)
+[![CI](https://github.com/kanutocd/whodunit/workflows/CI/badge.svg)](https://github.com/kanutocd/whodunit/actions)
+[![Coverage Status](https://codecov.io/gh/kanutocd/whodunit/branch/main/graph/badge.svg)](https://codecov.io/gh/kanutocd/whodunit)
+[![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%203.1.0-ruby.svg)](https://www.ruby-lang.org/en/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Lightweight creator/updater/deleter tracking for Rails ActiveRecord models.
 
 > **Fun Fact**: The term "whodunit" was coined by literary critic Donald Gordon in 1930 when reviewing a murder mystery novel for _American News of Books_. He described Milward Kennedy's _Half Mast Murder_ as "a satisfactory whodunit" - the first recorded use of this now-famous term for mystery stories! _([Source: Wikipedia](https://en.wikipedia.org/wiki/Whodunit))_
@@ -39,10 +45,13 @@ And then execute:
 After installation, you have a few options:
 
 1. **Generate Configuration & Setup** (Recommended):
+
    ```bash
    whodunit install
    ```
+
    This will:
+
    - Create `config/initializers/whodunit.rb` with all available configuration options
    - Optionally add `Whodunit::Stampable` to your `ApplicationRecord` for automatic stamping on all models
    - Provide clear next steps for adding stamp columns to your database

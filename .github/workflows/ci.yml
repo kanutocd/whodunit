@@ -39,13 +39,15 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: false
       - name: Run tests
-        run: bundle install && bundle exec rspec
+        run: bundle install && COVERAGE=true bundle exec rspec
 
       - name: Upload coverage reports to Codecov
         if: matrix.ruby-version == '3.4' && matrix.gemfile == 'gemfiles/rails_edge.gemfile'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          files: ./coverage/coverage.xml
+          verbose: true
+          use_oidc: true
+          files: ./coverage.xml,./coverage/coverage.xml
           fail_ci_if_error: false
         continue-on-error: true
 
