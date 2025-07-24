@@ -403,7 +403,7 @@ end
 | Feature               | Whodunit | PaperTrail | Audited |
 | --------------------- | -------- | ---------- | ------- |
 | User tracking         | ✅       | ✅         | ✅      |
-| Change history        | ❌       | ✅         | ✅      |
+| Change history        | Via [whodunit-chronicles](https://github.com/kanutocd/whodunit-chronicles) | ✅         | ✅      |
 | Performance overhead  | None     | High       | Medium  |
 | Soft-delete detection | ✅       | ❌         | ❌      |
 | Setup complexity      | Low      | Medium     | Medium  |
