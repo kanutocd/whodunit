@@ -405,7 +405,7 @@ end
 | User tracking         | ✅       | ✅         | ✅      |
 | Change history        | Via [whodunit-chronicles](https://github.com/kanutocd/whodunit-chronicles) | ✅         | ✅      |
 | Performance overhead  | None     | High       | Medium  |
-| Soft-delete detection | ✅       | ❌         | ❌      |
+| Soft-delete support   | ✅       | ❌         | ❌      |
 | Setup complexity      | Low      | Medium     | Medium  |
 
 ## Documentation
