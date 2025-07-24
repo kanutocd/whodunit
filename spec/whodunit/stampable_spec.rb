@@ -371,4 +371,61 @@ RSpec.describe Whodunit::Stampable do
       end
     end
   end
+
+  describe "reverse association management" do
+    let(:model_class) { Class.new(MockActiveRecord) }
+
+    describe ".disable_whodunit_reverse_associations!" do
+      it "disables reverse associations for the model" do
+        expect(model_class.whodunit_reverse_associations_enabled?).to be true
+        model_class.disable_whodunit_reverse_associations!
+        expect(model_class.whodunit_reverse_associations_enabled?).to be false
+      end
+    end
+
+    describe ".whodunit_reverse_associations_enabled?" do
+      it "returns true by default" do
+        expect(model_class.whodunit_reverse_associations_enabled?).to be true
+      end
+
+      it "returns false after being disabled" do
+        model_class.disable_whodunit_reverse_associations!
+        expect(model_class.whodunit_reverse_associations_enabled?).to be false
+      end
+    end
+
+    describe ".setup_whodunit_reverse_associations!" do
+      it "calls Whodunit.setup_reverse_associations_for_model when enabled" do
+        expect(Whodunit).to receive(:setup_reverse_associations_for_model).with(model_class)
+        model_class.setup_whodunit_reverse_associations!
+      end
+
+      it "does not call setup when disabled" do
+        model_class.disable_whodunit_reverse_associations!
+        expect(Whodunit).not_to receive(:setup_reverse_associations_for_model)
+        model_class.setup_whodunit_reverse_associations!
+      end
+    end
+
+    describe "automatic registration" do
+      let(:new_model_class) { Class.new }
+
+      before do
+        # Mock the necessary methods for the new model class
+        allow(new_model_class).to receive(:before_create)
+        allow(new_model_class).to receive(:before_update)
+        allow(new_model_class).to receive(:before_destroy)
+        allow(new_model_class).to receive(:belongs_to)
+        allow(new_model_class).to receive_messages(column_names: %w[id creator_id updater_id deleter_id], included_modules: [])
+
+        # Reset registered models
+        Whodunit.registered_models.clear
+      end
+
+      it "registers the model when Stampable is included" do
+        expect(Whodunit).to receive(:register_model).with(new_model_class)
+        new_model_class.include(described_class)
+      end
+    end
+  end
 end
