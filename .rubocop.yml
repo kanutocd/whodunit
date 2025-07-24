@@ -38,9 +38,17 @@ Metrics/MethodLength:
   Exclude:
     - 'spec/**/*'
 
+# Allow longer modules for main configuration
+Metrics/ModuleLength:
+  Exclude:
+    - 'lib/whodunit.rb'
+
 # RSpec specific configurations
 RSpec/ExampleLength:
   Max: 15
+  Exclude:
+    - 'spec/whodunit/reverse_associations_integration_spec.rb'
+    - 'spec/whodunit/reverse_associations_spec.rb'
 
 RSpec/MultipleExpectations:
   Max: 5
@@ -54,9 +62,20 @@ RSpec/ContextWording:
 RSpec/DescribeClass:
   Exclude:
     - 'spec/integration/**/*'
+    - 'spec/whodunit/reverse_associations_integration_spec.rb'
 
 RSpec/VerifiedDoubles:
   Enabled: false
+
+RSpec/MessageSpies:
+  Exclude:
+    - 'spec/whodunit/reverse_associations_integration_spec.rb'
+    - 'spec/whodunit/reverse_associations_spec.rb'
+    - 'spec/whodunit/stampable_spec.rb'
+
+RSpec/SpecFilePathFormat:
+  Exclude:
+    - 'spec/whodunit/reverse_associations_spec.rb'
 
 # Allow positional boolean arguments for standard Ruby method signatures
 Style/OptionalBooleanParameter:
