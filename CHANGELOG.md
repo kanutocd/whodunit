@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-24
+
+### Added
+
+- **Automatic Reverse Associations**: When models include `Whodunit::Stampable`, reverse associations are automatically created on the user class (e.g., `user.created_posts`, `user.updated_comments`, `user.deleted_documents`)
+- **Model Registry System**: Tracks models that include Stampable for automatic reverse association setup
+- **Per-Model Reverse Association Control**: Models can disable reverse associations with `disable_whodunit_reverse_associations!`
+- **Reverse Association Configuration**: Global configuration options including `auto_setup_reverse_associations`, `reverse_association_prefix`, and `reverse_association_suffix`
+- **Smart Model Capability Detection**: Automatically detects which associations to create based on model capabilities (creator, updater, deleter, soft-delete)
+- **Custom Column Support**: Reverse associations respect per-model custom column configurations
+- **Manual Setup Methods**: `setup_whodunit_reverse_associations!` and `setup_all_reverse_associations` for manual control
+
+### Changed
+
+- **Enhanced Stampable Module**: Now automatically registers models for reverse association setup when included
+- **Improved Configuration**: Extended main configuration module with reverse association settings
+- **Better Association Management**: Prevents duplicate associations and handles edge cases gracefully
+
+### Features
+
+- **Zero Configuration**: Reverse associations work automatically with sensible defaults
+- **Thread Safe**: Built on existing thread-safe architecture
+- **Flexible Naming**: Configurable prefixes and suffixes for association names
+- **Comprehensive Testing**: Full test coverage for all reverse association functionality
+- **RuboCop Compliant**: All code follows project style guidelines
+
 ## [0.2.1] - 2025-01-21
 
 ### Added
