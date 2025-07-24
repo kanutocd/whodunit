@@ -31,6 +31,21 @@ RSpec.describe Whodunit do
       expect(described_class.auto_inject_whodunit_stamps).to be(true)
     end
 
+    it "has reverse associations enabled by default" do
+      expect(described_class.auto_setup_reverse_associations).to be(true)
+    end
+
+    it "has empty reverse association prefix and suffix by default" do
+      expect(described_class.reverse_association_prefix).to eq("")
+      expect(described_class.reverse_association_suffix).to eq("")
+    end
+
+    it "starts with an empty registered models array" do
+      # Clear any models that may have been registered by other tests
+      described_class.registered_models.clear
+      expect(described_class.registered_models).to eq([])
+    end
+
     it "allows configuration" do
       described_class.configure do |config|
         config.user_class = "Account"
