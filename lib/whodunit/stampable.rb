@@ -52,6 +52,10 @@ module Whodunit
 
       # Set up associations - call on the class
       setup_whodunit_associations
+
+      # Register this model for reverse association setup
+      # This happens immediately, but the check for enabled status is done in register_model
+      Whodunit.register_model(self)
     end
 
     class_methods do # rubocop:disable Metrics/BlockLength
@@ -80,6 +84,31 @@ module Whodunit
         skip_callback :destroy, :before, :set_whodunit_deleter
         skip_callback :update, :before, :set_whodunit_deleter
         @soft_delete_enabled = false
+      end
+
+      # Disable reverse association setup for this model
+      # Call this method in the model class to prevent automatic reverse associations
+      # @example
+      #   class Post < ApplicationRecord
+      #     include Whodunit::Stampable
+      #     disable_whodunit_reverse_associations!
+      #   end
+      def disable_whodunit_reverse_associations!
+        @whodunit_reverse_associations_disabled = true
+        # Remove from registered models if already registered
+        Whodunit.registered_models.delete(self)
+      end
+
+      # Check if reverse associations are enabled for this model
+      # @return [Boolean] true if reverse associations should be set up
+      def whodunit_reverse_associations_enabled?
+        !@whodunit_reverse_associations_disabled
+      end
+
+      # Manually set up reverse associations for this model
+      # Can be called if reverse associations were disabled but you want to set them up later
+      def setup_whodunit_reverse_associations!
+        Whodunit.setup_reverse_associations_for_model(self) if whodunit_reverse_associations_enabled?
       end
 
       # Get effective configuration value (model override or global default)
