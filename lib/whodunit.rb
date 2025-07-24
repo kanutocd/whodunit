@@ -83,6 +83,31 @@ module Whodunit
   # @return [Symbol, nil] the deleter column data type
   mattr_accessor :deleter_column_type, default: nil
 
+  # @!group Reverse Association Configuration
+
+  # Whether to automatically set up reverse associations on the user class (default: true)
+  # When enabled, including Whodunit::Stampable in a model will automatically add
+  # has_many associations to the user class (e.g., has_many :created_posts)
+  # @return [Boolean] auto reverse association setting
+  mattr_accessor :auto_setup_reverse_associations, default: true
+
+  # Prefix for reverse association names (default: "")
+  # Used to generate association names like "created_posts", "updated_comments"
+  # @return [String] the prefix for reverse association names
+  mattr_accessor :reverse_association_prefix, default: ""
+
+  # Suffix for reverse association names (default: "")
+  # Used to generate association names like "posts_created", "comments_updated"
+  # @return [String] the suffix for reverse association names
+  mattr_accessor :reverse_association_suffix, default: ""
+
+  # @!group Model Registry
+
+  # Registry to track models that include Whodunit::Stampable
+  # This is used to set up reverse associations on the user class
+  # @return [Array<Class>] array of model classes that include Stampable
+  mattr_accessor :registered_models, default: []
+
   # Configure Whodunit settings
   #
   # @example
@@ -149,6 +174,135 @@ module Whodunit
   # @return [Boolean] true if deleter_column is not nil
   def self.deleter_enabled?
     !deleter_column.nil?
+  end
+
+  # @!group Model Registration & Reverse Associations
+
+  # Register a model class that includes Whodunit::Stampable
+  # This is called automatically when Stampable is included
+  # @param [Class] model_class the model class to register
+  # @return [void]
+  def self.register_model(model_class)
+    return unless auto_setup_reverse_associations
+    return if registered_models.include?(model_class)
+    return if model_class.respond_to?(:whodunit_reverse_associations_enabled?) &&
+              !model_class.whodunit_reverse_associations_enabled?
+
+    registered_models << model_class
+    setup_reverse_associations_for_model(model_class)
+  end
+
+  # Set up reverse associations on the user class for a specific model
+  # @param [Class] model_class the model class to set up reverse associations for
+  # @return [void]
+  def self.setup_reverse_associations_for_model(model_class)
+    return unless auto_setup_reverse_associations
+
+    user_class_instance = resolve_user_class
+    return unless user_class_instance.respond_to?(:has_many)
+
+    model_plural = model_class.name.underscore.pluralize
+
+    setup_creator_reverse_association(user_class_instance, model_class, model_plural)
+    setup_updater_reverse_association(user_class_instance, model_class, model_plural)
+    setup_deleter_reverse_association(user_class_instance, model_class, model_plural)
+  end
+
+  # Set up all reverse associations for all registered models
+  # This can be called manually if needed (e.g., after configuration changes)
+  # @return [void]
+  def self.setup_all_reverse_associations
+    registered_models.each do |model_class|
+      setup_reverse_associations_for_model(model_class)
+    end
+  end
+
+  # Generate a reverse association name based on action and model name
+  # @param [String] action the action (created, updated, deleted)
+  # @param [String] model_plural the pluralized model name
+  # @return [String] the generated association name
+  def self.generate_reverse_association_name(action, model_plural)
+    "#{reverse_association_prefix}#{action}_#{model_plural}#{reverse_association_suffix}"
+  end
+
+  # Resolve the user class constant
+  # @return [Class, nil] the user class or nil if not found
+  def self.resolve_user_class
+    user_class.constantize
+  rescue StandardError
+    nil
+  end
+
+  # Set up creator reverse association
+  # @param [Class] user_class_instance the user class
+  # @param [Class] model_class the model class
+  # @param [String] model_plural the pluralized model name
+  # @return [void]
+  def self.setup_creator_reverse_association(user_class_instance, model_class, model_plural)
+    return unless model_class.respond_to?(:model_creator_enabled?) && model_class.model_creator_enabled?
+
+    association_name = generate_reverse_association_name("created", model_plural)
+    setup_user_reverse_association(user_class_instance, association_name, model_class, :creator_id)
+  end
+
+  # Set up updater reverse association
+  # @param [Class] user_class_instance the user class
+  # @param [Class] model_class the model class
+  # @param [String] model_plural the pluralized model name
+  # @return [void]
+  def self.setup_updater_reverse_association(user_class_instance, model_class, model_plural)
+    return unless model_class.respond_to?(:model_updater_enabled?) && model_class.model_updater_enabled?
+
+    association_name = generate_reverse_association_name("updated", model_plural)
+    setup_user_reverse_association(user_class_instance, association_name, model_class, :updater_id)
+  end
+
+  # Set up deleter reverse association
+  # @param [Class] user_class_instance the user class
+  # @param [Class] model_class the model class
+  # @param [String] model_plural the pluralized model name
+  # @return [void]
+  def self.setup_deleter_reverse_association(user_class_instance, model_class, model_plural)
+    return unless model_class.respond_to?(:model_deleter_enabled?) && model_class.model_deleter_enabled?
+    return unless model_class.respond_to?(:soft_delete_enabled?) && model_class.soft_delete_enabled?
+
+    association_name = generate_reverse_association_name("deleted", model_plural)
+    setup_user_reverse_association(user_class_instance, association_name, model_class, :deleter_id)
+  end
+
+  # Set up a specific reverse association on the user class
+  # @param [Class] user_class_instance the user class
+  # @param [String] association_name the name of the association
+  # @param [Class] model_class the model class
+  # @param [Symbol] foreign_key_column the foreign key column name
+  # @return [void]
+  def self.setup_user_reverse_association(user_class_instance, association_name, model_class, foreign_key_column)
+    actual_foreign_key = resolve_foreign_key(model_class, foreign_key_column)
+
+    # Check if association already exists to avoid duplicates
+    return if user_class_instance.reflect_on_association(association_name.to_sym)
+
+    user_class_instance.has_many association_name.to_sym,
+                                 class_name: model_class.name,
+                                 foreign_key: actual_foreign_key,
+                                 dependent: :nullify
+  end
+
+  # Resolve the actual foreign key column name from model configuration
+  # @param [Class] model_class the model class
+  # @param [Symbol] foreign_key_column the default foreign key column
+  # @return [Symbol] the actual foreign key column name
+  def self.resolve_foreign_key(model_class, foreign_key_column)
+    return foreign_key_column unless model_class.respond_to?(:whodunit_setting)
+
+    column_mapping = {
+      creator_id: :creator_column,
+      updater_id: :updater_column,
+      deleter_id: :deleter_column
+    }
+
+    setting_key = column_mapping[foreign_key_column]
+    setting_key ? (model_class.whodunit_setting(setting_key) || foreign_key_column) : foreign_key_column
   end
 
   # Validate that column configuration is valid
