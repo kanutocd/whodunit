@@ -132,6 +132,51 @@ user.updater   # => User who last updated this record
 user.deleter   # => User who deleted this record (if soft-delete enabled)
 ```
 
+## Reverse Associations (Automatic)
+
+Whodunit automatically sets up reverse associations on your User model when you include `Whodunit::Stampable` in other models:
+
+```ruby
+# When you include Whodunit::Stampable in Post model:
+class Post < ApplicationRecord
+  include Whodunit::Stampable
+end
+
+# Your User model automatically gets these associations:
+user.created_posts   # => Posts created by this user
+user.updated_posts   # => Posts last updated by this user  
+user.deleted_posts   # => Posts deleted by this user (if soft-delete enabled)
+```
+
+### Configuring Reverse Associations
+
+```ruby
+# config/initializers/whodunit.rb
+Whodunit.configure do |config|
+  # Disable automatic reverse associations globally
+  config.auto_setup_reverse_associations = false
+  
+  # Customize association names with prefix/suffix
+  config.reverse_association_prefix = "whodunit_"
+  config.reverse_association_suffix = "_tracked"
+  # Results in: user.whodunit_created_posts_tracked
+end
+```
+
+### Per-Model Control
+
+```ruby
+class Post < ApplicationRecord
+  include Whodunit::Stampable
+  
+  # Disable reverse associations for this model only
+  disable_whodunit_reverse_associations!
+end
+
+# Or manually set up later
+Post.setup_whodunit_reverse_associations!
+```
+
 ## Soft-Delete Support
 
 Whodunit automatically tracks who deleted records when using soft-delete. Simply configure your soft-delete column:
@@ -163,6 +208,11 @@ Whodunit.configure do |config|
   config.deleter_column = :deleted_by_id    # Default: :deleter_id
   config.soft_delete_column = :discarded_at # Default: nil
   config.auto_inject_whodunit_stamps = false # Default: true
+
+  # Reverse association configuration
+  config.auto_setup_reverse_associations = false # Default: true
+  config.reverse_association_prefix = "track_"   # Default: ""
+  config.reverse_association_suffix = "_logs"    # Default: ""
 
   # Column data type configuration
   config.column_data_type = :integer       # Default: :bigint (applies to all columns)
