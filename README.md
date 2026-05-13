@@ -16,7 +16,7 @@ Whodunit provides simple auditing for Rails applications by tracking who created
 
 ## Requirements
 
-- Ruby 3.1.1+ (tested on 3.1.1, 3.2.0, 3.3.0, 3.4). See the [the ruby-version matrix strategy of the CI workflow](https://github.com/kanutocd/whodunit/blob/main/.github/workflows/ci.yml#L15).
+- Ruby 3.1.1+ (tested on 3.1.1, 3.2.0, 3.3.0, 3.4, 4.0). See the [the ruby-version matrix strategy of the CI workflow](https://github.com/kanutocd/whodunit/blob/main/.github/workflows/ci.yml#L15).
 - Rails 7.2+ (tested on 7.2, 8.2, and edge)
 - ActiveRecord for database operations
 
