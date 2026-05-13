@@ -58,13 +58,14 @@ Gem::Specification.new do |spec|
   MSG
 
   # Runtime dependencies
-  spec.add_dependency "activerecord", ">= 7.2"
-  spec.add_dependency "activesupport", ">= 7.2"
+  spec.add_dependency "activerecord", ">= 7.2.2.2"
+  spec.add_dependency "activesupport", ">= 7.2.3.1"
 
   # Development dependencies
   spec.add_development_dependency "bundler-audit", "~> 0.9.2"
   spec.add_development_dependency "irb", "~> 1.15"
   spec.add_development_dependency "kramdown", ">= 2.5"
+  spec.add_development_dependency "ostruct"
   spec.add_development_dependency "rake", ">= 13.3"
   spec.add_development_dependency "rspec", ">= 3.13"
   spec.add_development_dependency "rubocop", ">= 1.78"

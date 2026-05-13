@@ -28,7 +28,7 @@ module Whodunit
   # @since 0.1.0
   class Current < ActiveSupport::CurrentAttributes
     # @!attribute [rw] user
-    #   @return [Integer, nil] the current user ID
+    # @return [Integer, nil] the current user ID
     attribute :user
 
     class << self
