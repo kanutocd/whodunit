@@ -74,6 +74,7 @@ RSpec.describe "Whodunit Reverse Associations Integration" do
           "TestModel3"
         end
         include Whodunit::Stampable
+
         disable_whodunit_reverse_associations!
       end
 
