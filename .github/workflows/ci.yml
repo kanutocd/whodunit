@@ -47,7 +47,7 @@ jobs:
         run: bundle update && bundle install && COVERAGE=true bundle exec rspec
 
       - name: Upload coverage reports to Codecov
-        if: matrix.ruby-version == '3.4' && matrix.gemfile == 'gemfiles/rails_edge.gemfile'
+        if: matrix.ruby-version == '4.0' && matrix.gemfile == 'gemfiles/rails_edge.gemfile'
         uses: codecov/codecov-action@v5
         with:
           verbose: true
