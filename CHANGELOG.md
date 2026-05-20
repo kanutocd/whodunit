@@ -5,7 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2025-05-20
+
+### Breaking Changes
+
+- Dropped support for Ruby 3.1. Minimum supported Ruby version is now **3.2**.
+
+### Fixed
+
+- `TableDefinitionExtension`: replaced `included { attr_accessor :_whodunit_stamps_added }` with
+  explicit reader/writer methods so the accessor is defined correctly when the module is **prepended**
+  (as the Railtie does) rather than included. Previously the accessor was silently missing in
+  production, causing `@_whodunit_stamps_added` to be inaccessible via the public API.
+
+### Changed
+
+- **Test suite**: eliminated all hand-rolled ActiveRecord and Railtie mocks in favour of genuine
+  infrastructure — real `ActiveRecord::Base` subclasses backed by an in-memory SQLite3 database,
+  and real `ActiveRecord::ConnectionAdapters::TableDefinition` instances for migration-helper tests.
+  Callbacks, dirty tracking, `belongs_to` reflections, and `column_names` now go through actual AR
+  code paths rather than no-op stubs.
+  - `spec/support/rails_mocks.rb` — emptied; `activesupport` is a runtime dependency and needs no
+    re-implementation in tests.
+  - `spec/support/test_models.rb` — replaced `MockActiveRecord` stub class with real AR models
+    (`WhodunitRecord`, `WhodunitSoftDeleteRecord`) on an in-memory SQLite3 schema; backward-compat
+    aliases preserved.
+  - `spec/spec_helper.rb` — added `rescue Bundler::GemNotFound` guard on `require "bundler/setup"`
+    to allow running specs directly without `bundle exec`; wrapped every example in an AR transaction
+    that rolls back on completion; added missing config keys to `ORIGINAL_WHODUNIT_CONFIG`.
+  - `spec/whodunit/table_definition_extension_spec.rb` — now tests the real
+    `ActiveRecord::ConnectionAdapters::TableDefinition` with `TableDefinitionExtension` prepended,
+    rather than an anonymous class that reimplemented the extension logic internally.
+  - `spec/whodunit/stampable_spec.rb` — `being_soft_deleted?` tests use real AR dirty tracking via
+    genuine attribute writes; callback-integration tests persist records and assert database values
+    after `reload`.
+  - `spec/whodunit/migration_helpers_spec.rb` — `whodunit_stamps(table_def)` path uses a real
+    `TableDefinitionExtension`-prepended `TableDefinition` instance instead of a double.
+  - `spec/whodunit/per_model_config_spec.rb`, `railtie_spec.rb`,
+    `reverse_associations_integration_spec.rb` — all converted to real AR anonymous subclasses;
+    removed stubs for `before_create`, `belongs_to`, and `column_names`.
 
 ## [0.3.0] - 2025-01-24
 
