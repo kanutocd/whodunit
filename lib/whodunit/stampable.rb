@@ -145,6 +145,8 @@ module Whodunit
       private
 
       def setup_whodunit_associations
+        return if abstract_class?
+
         setup_creator_association if creator_column_exists? && model_creator_enabled?
         setup_updater_association if updater_column_exists? && model_updater_enabled?
         setup_deleter_association if deleter_column_exists? && model_deleter_enabled? && soft_delete_enabled?
