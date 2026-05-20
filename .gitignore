@@ -62,3 +62,5 @@ build-iPhoneSimulator/
 /example
 
 /docs
+
+Gemfile.lock
