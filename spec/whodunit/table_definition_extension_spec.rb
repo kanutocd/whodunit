@@ -3,148 +3,138 @@
 require "spec_helper"
 
 RSpec.describe Whodunit::TableDefinitionExtension do
-  let(:mock_table_definition) do
-    Class.new do
-      include Whodunit::MigrationHelpers
-      include Whodunit::TableDefinitionExtension
+  # helpers
 
-      attr_reader :columns_added
-      attr_accessor :_whodunit_stamps_added
+  # Build a real TableDefinition instance backed by a minimal fake connection.
+  # We reset the prepend state in a let so each example gets a fresh object.
+  let(:conn) do
+    Object.new.tap do |c|
+      def c.supports_datetime_with_precision? = false
 
-      def initialize
-        @columns_added = []
-        @_whodunit_stamps_added = false
+      def c.native_database_types
+        { datetime: { name: "datetime" }, primary_key: { name: "bigint" } }
       end
-
-      def timestamps(**options)
-        @columns_added << [:timestamps, options]
-
-        # Auto-inject whodunit_stamps after timestamps if enabled and not already added
-        if Whodunit.auto_inject_whodunit_stamps &&
-           !@_whodunit_stamps_added &&
-           !options[:skip_whodunit_stamps]
-          whodunit_stamps(include_deleter: :auto)
-          @_whodunit_stamps_added = true
-        end
-
-        "timestamps_called"
-      end
-
-      def whodunit_stamps(**options)
-        @_whodunit_stamps_added = true
-        @columns_added << [:whodunit_stamps, options]
-        "whodunit_stamps_called"
-      end
-    end.new
+    end
+  end
+  let(:td) do
+    ActiveRecord::ConnectionAdapters::TableDefinition.new(conn, "test_posts").tap do |t|
+      # Reset per-example stamp tracker so examples are independent
+      t.instance_variable_set(:@_whodunit_stamps_added, false)
+    end
   end
 
-  before do
-    # Reset configuration before each test to the default
-    Whodunit.auto_inject_whodunit_stamps = true
+  # Ensure the extension is prepended once (idempotent in Ruby).
+  before(:all) do # rubocop:disable RSpec/BeforeAfterAll
+    td_class = ActiveRecord::ConnectionAdapters::TableDefinition
+    td_class.prepend(described_class) unless
+      td_class.ancestors.include?(described_class)
+    td_class.extend(Whodunit::MigrationHelpers) unless
+      td_class.singleton_class.ancestors.include?(Whodunit::MigrationHelpers)
   end
 
-  after do
-    # Reset configuration after each test to the default
-    Whodunit.auto_inject_whodunit_stamps = true
-  end
+  before { Whodunit.auto_inject_whodunit_stamps = true }
+
+  # #timestamps
 
   describe "#timestamps" do
     context "when auto_inject_whodunit_stamps is enabled (default)" do
-      it "automatically adds whodunit_stamps after timestamps" do
-        Whodunit.auto_inject_whodunit_stamps = true
-
-        result = mock_table_definition.timestamps
-
-        expect(result).to eq("timestamps_called")
-        expect(mock_table_definition.columns_added).to eq([
-                                                            [:timestamps, {}],
-                                                            [:whodunit_stamps, { include_deleter: :auto }]
-                                                          ])
+      it "still adds the real created_at / updated_at columns" do
+        td.timestamps
+        column_names = td.columns.map(&:name)
+        expect(column_names).to include("created_at", "updated_at")
       end
 
-      it "respects skip_whodunit_stamps option" do
-        Whodunit.auto_inject_whodunit_stamps = true
-
-        result = mock_table_definition.timestamps(skip_whodunit_stamps: true)
-
-        expect(result).to eq("timestamps_called")
-        expect(mock_table_definition.columns_added).to eq([
-                                                            [:timestamps, { skip_whodunit_stamps: true }]
-                                                          ])
+      it "automatically adds whodunit stamp columns after timestamps" do
+        td.timestamps
+        column_names = td.columns.map(&:name)
+        expect(column_names).to include("creator_id", "updater_id")
       end
 
-      it "does not add whodunit_stamps twice if already added manually" do
-        Whodunit.auto_inject_whodunit_stamps = true
-
-        # Manually add whodunit_stamps first
-        mock_table_definition.whodunit_stamps(include_deleter: true)
-        # Then call timestamps
-        mock_table_definition.timestamps
-
-        expect(mock_table_definition.columns_added).to eq([
-                                                            [:whodunit_stamps, { include_deleter: true }],
-                                                            [:timestamps, {}]
-                                                          ])
+      it "marks _whodunit_stamps_added as true after auto-injection" do
+        td.timestamps
+        expect(td._whodunit_stamps_added).to be true
       end
 
-      it "does not add whodunit_stamps multiple times when timestamps called multiple times" do
-        Whodunit.auto_inject_whodunit_stamps = true
+      it "does not add stamp columns twice when whodunit_stamps was already called before timestamps" do
+        # Developer manually calls t.whodunit_stamps then t.timestamps in the same block.
+        # The extension must not inject a second set of stamp columns.
+        td.whodunit_stamps
+        stamp_count_before = td.columns.count { |c| c.name == "creator_id" }
+        td.timestamps
+        stamp_count_after = td.columns.count { |c| c.name == "creator_id" }
+        expect(stamp_count_after).to eq(stamp_count_before)
+      end
 
-        mock_table_definition.timestamps
-        mock_table_definition.timestamps
-
-        expect(mock_table_definition.columns_added).to eq([
-                                                            [:timestamps, {}],
-                                                            [:whodunit_stamps, { include_deleter: :auto }],
-                                                            [:timestamps, {}]
-                                                          ])
+      it "respects skip_whodunit_stamps: true option" do
+        td.timestamps(skip_whodunit_stamps: true)
+        column_names = td.columns.map(&:name)
+        expect(column_names).not_to include("creator_id", "updater_id")
       end
     end
 
     context "when auto_inject_whodunit_stamps is disabled" do
-      it "does not automatically add whodunit_stamps" do
-        Whodunit.auto_inject_whodunit_stamps = false
+      before { Whodunit.auto_inject_whodunit_stamps = false }
 
-        result = mock_table_definition.timestamps
+      it "does not add whodunit stamp columns" do
+        td.timestamps
+        column_names = td.columns.map(&:name)
+        expect(column_names).not_to include("creator_id", "updater_id")
+      end
 
-        expect(result).to eq("timestamps_called")
-        expect(mock_table_definition.columns_added).to eq([[:timestamps, {}]])
+      it "still adds the real created_at / updated_at columns" do
+        td.timestamps
+        column_names = td.columns.map(&:name)
+        expect(column_names).to include("created_at", "updated_at")
       end
     end
 
-    context "with custom column configuration" do
-      before do
-        # Test with custom column names
-        Whodunit.deleter_column = :deleted_by_id
-      end
+    context "with a custom creator column configured" do
+      before { Whodunit.creator_column = :created_by_id }
+      after  { Whodunit.creator_column = :creator_id }
 
-      after do
-        # Reset to default
-        Whodunit.deleter_column = :deleter_id
-      end
-
-      it "uses configured column names in auto-injection" do
-        Whodunit.auto_inject_whodunit_stamps = true
-
-        result = mock_table_definition.timestamps
-
-        expect(result).to eq("timestamps_called")
-        expect(mock_table_definition.columns_added).to eq([
-                                                            [:timestamps, {}],
-                                                            [:whodunit_stamps, { include_deleter: :auto }]
-                                                          ])
+      it "uses the configured column name" do
+        td.timestamps
+        column_names = td.columns.map(&:name)
+        expect(column_names).to include("created_by_id")
+        expect(column_names).not_to include("creator_id")
       end
     end
   end
 
-  describe "#whodunit_stamps" do
-    it "tracks that whodunit_stamps have been added" do
-      mock_table_definition.whodunit_stamps(include_deleter: false)
+  # #whodunit_stamps
 
-      expect(mock_table_definition.columns_added).to eq([
-                                                          [:whodunit_stamps, { include_deleter: false }]
-                                                        ])
-      expect(mock_table_definition._whodunit_stamps_added).to be true
+  describe "#whodunit_stamps" do
+    it "adds creator_id and updater_id columns with default types" do
+      td.whodunit_stamps
+      column_names = td.columns.map(&:name)
+      expect(column_names).to include("creator_id", "updater_id")
+    end
+
+    it "sets _whodunit_stamps_added to true" do
+      td.whodunit_stamps
+      expect(td._whodunit_stamps_added).to be true
+    end
+
+    it "does not add deleter_id by default (include_deleter: :auto with no soft-delete config)" do
+      Whodunit.soft_delete_column = nil
+      td.whodunit_stamps(include_deleter: :auto)
+      column_names = td.columns.map(&:name)
+      expect(column_names).not_to include("deleter_id")
+    end
+
+    it "adds deleter_id when include_deleter: true" do
+      td.whodunit_stamps(include_deleter: true)
+      column_names = td.columns.map(&:name)
+      expect(column_names).to include("deleter_id")
+    end
+
+    it "uses the configured column data type" do
+      Whodunit.column_data_type = :integer
+      td.whodunit_stamps
+      creator_col = td.columns.find { |c| c.name == "creator_id" }
+      expect(creator_col.type).to eq(:integer)
+    ensure
+      Whodunit.column_data_type = :bigint
     end
   end
 end
