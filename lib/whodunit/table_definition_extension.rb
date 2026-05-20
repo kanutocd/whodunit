@@ -35,23 +35,23 @@ module Whodunit
 
     # Override timestamps to trigger automatic whodunit_stamps injection
     def timestamps(**options)
-      result = super
+      options = options.dup
+      skip = options.delete(:skip_whodunit_stamps)
+      result = super(**options)
 
-      # Auto-inject whodunit_stamps after timestamps if enabled and not already added
-      if Whodunit.auto_inject_whodunit_stamps &&
-         !@_whodunit_stamps_added &&
-         !options[:skip_whodunit_stamps]
+      if Whodunit.auto_inject_whodunit_stamps && !@_whodunit_stamps_added && !skip
         whodunit_stamps(include_deleter: :auto)
-        @_whodunit_stamps_added = true
       end
 
       result
     end
 
-    # Also override whodunit_stamps to track that they've been added
-    def whodunit_stamps(**options)
+    # assign true tp the tracker `@_whodunit_stamps_added` before the
+    # reuse/call of the `whodunit_stamps` flow from the Whodunit::MigrationHelpers module (see railtie.rb)
+    # 
+    def whodunit_stamps(include_deleter: :auto, creator_type: nil, updater_type: nil, deleter_type: nil)
       @_whodunit_stamps_added = true
-      super
+      self.class.whodunit_stamps(self, include_deleter:, creator_type:, updater_type:, deleter_type:)
     end
   end
 end
