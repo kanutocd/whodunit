@@ -22,19 +22,19 @@ module Whodunit
 
       # Extend ActiveRecord with migration helpers.
       #
-      # This initializer adds the MigrationHelpers module to ActiveRecord,
+      # This initializer adds the MigrationHelpers module to ActiveRecord::Migration,
       # making methods like add_whodunit_stamps available in migrations.
       # It also extends TableDefinition for automatic whodunit_stamps injection.
       #
       # @api private
       initializer "whodunit.extend_active_record" do |_app|
         ActiveSupport.on_load(:active_record) do
-          extend Whodunit::MigrationHelpers
+          ActiveRecord::Migration.include(Whodunit::MigrationHelpers)
 
-          # Extend TableDefinition for automatic whodunit_stamps injection
-          ActiveRecord::ConnectionAdapters::TableDefinition.include(
-            Whodunit::TableDefinitionExtension
-          )
+          # We use ActiveRecord::ConnectionAdapters::TableDefinition#timestamps to automatically inject whodunit_stamps
+          ActiveRecord::ConnectionAdapters::TableDefinition.prepend(Whodunit::TableDefinitionExtension)
+          # Reuse the `whodunit_stamps` flow in Whodunit::MigrationHelpers module
+          ActiveRecord::ConnectionAdapters::TableDefinition.extend(Whodunit::MigrationHelpers)
         end
       end
 
