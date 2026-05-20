@@ -3,7 +3,7 @@
 [![Gem Version](https://badge.fury.io/rb/whodunit.svg)](https://badge.fury.io/rb/whodunit)
 [![CI](https://github.com/kanutocd/whodunit/workflows/CI/badge.svg)](https://github.com/kanutocd/whodunit/actions)
 [![Coverage Status](https://codecov.io/gh/kanutocd/whodunit/branch/main/graph/badge.svg)](https://codecov.io/gh/kanutocd/whodunit)
-[![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%203.1.0-ruby.svg)](https://www.ruby-lang.org/en/)
+[![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%203.2-ruby.svg)](https://www.ruby-lang.org/en/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Lightweight creator/updater/deleter tracking for Rails ActiveRecord models.
@@ -16,7 +16,7 @@ Whodunit provides simple auditing for Rails applications by tracking who created
 
 ## Requirements
 
-- Ruby 3.1.1+ (tested on 3.1.1, 3.2.0, 3.3.0, 3.4, 4.0). See the [the ruby-version matrix strategy of the CI workflow](https://github.com/kanutocd/whodunit/blob/main/.github/workflows/ci.yml#L15).
+- Ruby 3.2+ (tested on 3.2, 3.3, 3.4, 4.0). See the [the ruby-version matrix strategy of the CI workflow](https://github.com/kanutocd/whodunit/blob/main/.github/workflows/ci.yml#L15).
 - Rails 7.2+ (tested on 7.2, 8.2, and edge)
 - ActiveRecord for database operations
 

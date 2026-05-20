@@ -15,16 +15,14 @@ jobs:
 
     strategy:
       matrix:
-        ruby-version: ["3.1.1", "3.2.0", "3.3.0", "3.4", "4.0"]
+        ruby-version: ["3.2", "3.3", "3.4", "4.0"]
         gemfile:
           - Gemfile
         include:
           # Test against different Rails versions
-          - ruby-version: "3.1.1"
+          - ruby-version: "3.2"
             gemfile: gemfiles/rails_7_2.gemfile
-          - ruby-version: "3.2.0"
-            gemfile: gemfiles/rails_7_2.gemfile
-          - ruby-version: "3.3.0"
+          - ruby-version: "3.3"
             gemfile: gemfiles/rails_8_2.gemfile
           - ruby-version: "3.4"
             gemfile: gemfiles/rails_8_2.gemfile
