@@ -73,9 +73,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rubocop-rspec", ">= 3.6"
   spec.add_development_dependency "simplecov", ">= 0.22.0"
   spec.add_development_dependency "simplecov-cobertura", ">= 3.0"
-  spec.add_development_dependency "yard", ">= 0.9.37"
   spec.add_development_dependency "sqlite3", "~> 2.9"
-  
+  spec.add_development_dependency "yard", ">= 0.9.37"
+
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
 end

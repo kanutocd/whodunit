@@ -85,11 +85,12 @@ RSpec.configure do |config|
   # Filter out any specs with :focus tag unless specifically running them
   config.filter_run_when_matching :focus
 
-  config.before(:each) do
+  config.before do
     # Mocks the valid column options in  test block to allow or disallow custom ones
-    allow_any_instance_of(ActiveRecord::ConnectionAdapters::TableDefinition).to receive(:valid_column_definition_options).and_return([
-      :limit, :default, :null, :precision, :scale, :comment, :collation, :primary_key
-    ])
+    # rubocop:disable RSpec/AnyInstance
+    allow_any_instance_of(ActiveRecord::ConnectionAdapters::TableDefinition)
+      .to receive(:valid_column_definition_options).and_return(%i[imit default null precision scale comment collation primary_key])
+    # rubocop:enable RSpec/AnyInstance
   end
 
   # Wrap each example in a DB transaction so AR tests don't bleed state.
