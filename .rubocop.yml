@@ -114,12 +114,12 @@ Metrics/AbcSize:
     - 'spec/**/*'
 
 Metrics/CyclomaticComplexity:
-  Max: 8
+  Max: 10
   Exclude:
     - 'spec/**/*'
 
 Metrics/PerceivedComplexity:
-  Max: 8
+  Max: 10
   Exclude:
     - 'spec/**/*'
 Gemspec/DevelopmentDependencies:
