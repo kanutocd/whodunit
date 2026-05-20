@@ -29,13 +29,28 @@ SimpleCov.start do
   add_filter "lib/whodunit/version.rb" # Simple version constant
 end
 
-require "bundler/setup"
+# bundler/setup locks the load path to Gemfile.lock-resolved gems.  In a
+# full Bundler environment (CI, `bundle exec rspec`) this is fine.  When
+# running specs directly with the system Ruby (no bundle exec) the locked
+# versions may not be available, so we silently skip the setup – the gems
+# we actually need (activerecord, activesupport, rspec, simplecov, sqlite3)
+# are required individually below.
+begin
+  require "bundler/setup"
+rescue LoadError, Bundler::GemNotFound
+  # Running outside of bundle exec – fall through
+end
+
+require "active_record"
+require "active_support/all"
+require "logger"
 require "whodunit"
 
-# Load test support files
+# Load test support files (includes schema creation + model definitions)
 Dir[File.expand_path("support/**/*.rb", __dir__)].each { |f| require f }
 
-# Store original configuration values to prevent test pollution
+# Store original configuration values to prevent test pollution.
+# Keep in sync with every mattr_accessor in lib/whodunit.rb.
 ORIGINAL_WHODUNIT_CONFIG = {
   user_class: "User",
   creator_column: :creator_id,
@@ -46,7 +61,10 @@ ORIGINAL_WHODUNIT_CONFIG = {
   column_data_type: :bigint,
   creator_column_type: nil,
   updater_column_type: nil,
-  deleter_column_type: nil
+  deleter_column_type: nil,
+  auto_setup_reverse_associations: true,
+  reverse_association_prefix: "",
+  reverse_association_suffix: ""
 }.freeze
 
 RSpec.configure do |config|
@@ -67,13 +85,32 @@ RSpec.configure do |config|
   # Filter out any specs with :focus tag unless specifically running them
   config.filter_run_when_matching :focus
 
-  # Clean up after each test - reset to known defaults
+  config.before(:each) do
+    # Mocks the valid column options in  test block to allow or disallow custom ones
+    allow_any_instance_of(ActiveRecord::ConnectionAdapters::TableDefinition).to receive(:valid_column_definition_options).and_return([
+      :limit, :default, :null, :precision, :scale, :comment, :collation, :primary_key
+    ])
+  end
+
+  # Wrap each example in a DB transaction so AR tests don't bleed state.
+  # Uses the real AR connection established in spec/support/test_models.rb.
+  config.around do |example|
+    ActiveRecord::Base.transaction do
+      example.run
+      raise ActiveRecord::Rollback
+    end
+  end
+
+  # Clean up after each test – reset Whodunit configuration and current user
   config.after do
     Whodunit::Current.reset
 
     # Restore original configuration to prevent test pollution
     ORIGINAL_WHODUNIT_CONFIG.each do |key, value|
-      Whodunit.public_send("#{key}=", value)
+      Whodunit.public_send(:"#{key}=", value)
     end
+
+    # Clear registered models so model-registration specs start clean
+    Whodunit.registered_models.clear
   end
 end
