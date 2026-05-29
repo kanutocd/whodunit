@@ -4,9 +4,13 @@
 --exclude spec/
 --exclude vendor/
 --main README.md
+--protected
+--private
 --title "Whodunit API Documentation"
---charset utf-8
+--readme README.md
+--files CHANGELOG.md,CHANGELOG.md,LICENSE
 lib/**/*.rb
 -
 README.md
 CHANGELOG.md
+LICENSE
