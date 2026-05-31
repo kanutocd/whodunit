@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-06-01
+
+### Fixed
+
+- Fixed `Whodunit::Stampable` when included on an abstract ActiveRecord base class, such as `ApplicationRecord`. Association setup and model registration are now deferred to concrete subclasses.
+- Preserved existing `inherited` hooks by prepending an internal hook instead of replacing `self.inherited`.
+- Supported multi-level abstract inheritance, such as `ApplicationRecord -> TenantRecord -> Post`, without registering abstract classes.
+
+### Added
+
+- Added RSpec regression coverage for abstract-base inclusion, inherited-hook preservation, abstract subclass exclusion, concrete subclass registration, multi-level abstract inheritance, and inherited callback stamping.
+
 ## [0.4.0] - 2025-05-20
 
 ### Breaking Changes
