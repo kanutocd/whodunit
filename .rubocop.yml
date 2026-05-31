@@ -35,6 +35,7 @@ Metrics/BlockLength:
 
 # Allow longer methods in specs and configuration
 Metrics/MethodLength:
+  Max: 15
   Exclude:
     - 'spec/**/*'
 

@@ -32,7 +32,7 @@ RSpec.describe Whodunit::Stampable do
   it "defers association setup and registration from an abstract base to concrete subclasses" do
     stub_const("WhodunitTestApplicationRecord", Class.new(ActiveRecord::Base))
     WhodunitTestApplicationRecord.abstract_class = true
-    WhodunitTestApplicationRecord.include Whodunit::Stampable
+    WhodunitTestApplicationRecord.include described_class
 
     stub_const("WhodunitTestPost", Class.new(WhodunitTestApplicationRecord))
     WhodunitTestPost.table_name = "whodunit_test_posts"
@@ -56,7 +56,7 @@ RSpec.describe Whodunit::Stampable do
       inherited_subclasses << subclass
     end
 
-    WhodunitTestApplicationRecord.include Whodunit::Stampable
+    WhodunitTestApplicationRecord.include described_class
 
     stub_const("WhodunitTestPost", Class.new(WhodunitTestApplicationRecord))
     WhodunitTestPost.table_name = "whodunit_test_posts"
@@ -72,7 +72,7 @@ RSpec.describe Whodunit::Stampable do
   it "does not register abstract subclasses" do
     stub_const("WhodunitTestApplicationRecord", Class.new(ActiveRecord::Base))
     WhodunitTestApplicationRecord.abstract_class = true
-    WhodunitTestApplicationRecord.include Whodunit::Stampable
+    WhodunitTestApplicationRecord.include described_class
 
     stub_const("WhodunitTestAbstractRecord", Class.new(WhodunitTestApplicationRecord))
     WhodunitTestAbstractRecord.abstract_class = true
@@ -84,7 +84,7 @@ RSpec.describe Whodunit::Stampable do
   it "supports multi-level abstract inheritance before the concrete model is defined" do
     stub_const("WhodunitTestApplicationRecord", Class.new(ActiveRecord::Base))
     WhodunitTestApplicationRecord.abstract_class = true
-    WhodunitTestApplicationRecord.include Whodunit::Stampable
+    WhodunitTestApplicationRecord.include described_class
 
     stub_const("WhodunitTestTenantRecord", Class.new(WhodunitTestApplicationRecord))
     WhodunitTestTenantRecord.abstract_class = true
@@ -105,7 +105,7 @@ RSpec.describe Whodunit::Stampable do
 
     stub_const("WhodunitTestApplicationRecord", Class.new(ActiveRecord::Base))
     WhodunitTestApplicationRecord.abstract_class = true
-    WhodunitTestApplicationRecord.include Whodunit::Stampable
+    WhodunitTestApplicationRecord.include described_class
 
     stub_const("WhodunitTestPost", Class.new(WhodunitTestApplicationRecord))
     WhodunitTestPost.table_name = "whodunit_test_posts"
