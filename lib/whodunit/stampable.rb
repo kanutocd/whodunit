@@ -50,12 +50,16 @@ module Whodunit
       before_destroy :set_whodunit_deleter, if: :deleter_column?
       before_update :set_whodunit_deleter, if: :being_soft_deleted?
 
-      # Set up associations - call on the class
-      setup_whodunit_associations
+      if abstract_class?
+        install_whodunit_inherited_hook
+      else
+        # Set up associations - call on the including concrete class.
+        setup_whodunit_associations
 
-      # Register this model for reverse association setup
-      # This happens immediately, but the check for enabled status is done in register_model
-      Whodunit.register_model(self)
+        # Register this including model for reverse association setup.
+        # This happens immediately, but the check for enabled status is done in register_model.
+        Whodunit.register_model(self)
+      end
     end
 
     class_methods do # rubocop:disable Metrics/BlockLength
@@ -144,6 +148,43 @@ module Whodunit
 
       private
 
+      # Install an inherited hook when Stampable is included on an abstract ActiveRecord
+      # base class, such as ApplicationRecord. Associations require concrete table
+      # metadata, so setup must be deferred until concrete subclasses are defined.
+      #
+      # The hook is prepended instead of assigned with `def self.inherited` so existing
+      # inherited hooks on the application base class remain intact. When the subclass
+      # is also abstract, the same hook is propagated so multi-level abstract
+      # inheritance is supported.
+      #
+      # @return [void]
+      # @api private
+      def install_whodunit_inherited_hook
+        return if instance_variable_defined?(:@whodunit_inherited_hook_installed) &&
+                  @whodunit_inherited_hook_installed
+
+        inherited_hook = Module.new do
+          def inherited(subclass)
+            super
+
+            subclass.send(:install_whodunit_inherited_hook)
+
+            return if subclass.abstract_class?
+            return if subclass.name.nil?
+
+            subclass.send(:setup_whodunit_associations)
+            Whodunit.register_model(subclass)
+          end
+        end
+
+        singleton_class.prepend(inherited_hook)
+        @whodunit_inherited_hook_installed = true
+      end
+
+      # Set up associations for concrete ActiveRecord models.
+      #
+      # @return [void]
+      # @api private
       def setup_whodunit_associations
         return if abstract_class?
 

@@ -64,3 +64,5 @@ build-iPhoneSimulator/
 /docs
 
 Gemfile.lock
+
+/.ignoreme/
