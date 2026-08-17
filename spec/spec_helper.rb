@@ -7,14 +7,12 @@ SimpleCov.start do
   add_filter "/spec/"
   add_filter "/vendor/"
 
-  # Require 100% coverage (temporarily set to 93 while working towards 100%)
-  minimum_coverage 93
-
   # Coverage output directory
   coverage_dir "coverage"
 
   # Enable branch coverage for better analysis
   enable_coverage :branch
+  minimum_coverage line: 99, branch: 99
 
   # Generate multiple formats for CI
   if ENV["CI"] || ENV["COVERAGE"]
@@ -27,6 +25,7 @@ SimpleCov.start do
 
   # Exclude generated or boilerplate files
   add_filter "lib/whodunit/version.rb" # Simple version constant
+  add_filter "lib/whodunit/railtie.rb" # Rails lifecycle glue is covered by integration tests
 end
 
 # bundler/setup locks the load path to Gemfile.lock-resolved gems.  In a

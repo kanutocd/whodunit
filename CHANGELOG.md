@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- Added `auto_create_user_fk_constraints` configuration for automatically creating foreign-key constraints from creator, updater, and deleter stamp columns to the configured user table.
+- Added `user_class_table_name` for explicitly overriding the inferred user table name.
+- Added per-migration overrides for automatic user foreign-key creation.
+
+### Fixed
+
+- Made stamp auto-injection idempotent when migrations already declare stamp columns or matching foreign keys.
+- Removed stamp foreign-key constraints before removing stamp columns in migration helpers.
+
 ## [0.4.1] - 2026-06-01
 
 ### Fixed

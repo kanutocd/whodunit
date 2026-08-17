@@ -195,6 +195,26 @@ RSpec.describe Whodunit::ControllerMethods do
       end
     end
 
+    it "skips callback configuration when controller hooks are unavailable" do
+      controller = Class.new do
+        include Whodunit::ControllerMethods
+      end
+
+      expect { controller.skip_whodunit_for(:index) }.not_to raise_error
+      expect { controller.whodunit_only_for(:show) }.not_to raise_error
+    end
+
+    it "installs callbacks when controller hooks are available" do
+      controller = Class.new do
+        def self.before_action(*) = nil
+        def self.after_action(*) = nil
+
+        include Whodunit::ControllerMethods
+      end
+
+      expect(controller).to be < described_class
+    end
+
     describe ".skip_whodunit_for" do
       it "skips whodunit callbacks for specified actions" do
         allow(controller_with_class_methods).to receive(:skip_before_action)

@@ -281,4 +281,14 @@ RSpec.describe Whodunit do
       described_class.setup_reverse_associations_for_model(model_class)
     end
   end
+
+  describe ".resolve_foreign_key" do
+    it "keeps the default key for a non-Stampable model" do
+      expect(described_class.resolve_foreign_key(Class.new, :creator_id)).to eq(:creator_id)
+    end
+
+    it "keeps the default key for an unmapped column" do
+      expect(described_class.resolve_foreign_key(model_class, :other_id)).to eq(:other_id)
+    end
+  end
 end

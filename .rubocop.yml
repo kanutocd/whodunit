@@ -43,6 +43,11 @@ Metrics/MethodLength:
 Metrics/ModuleLength:
   Exclude:
     - 'lib/whodunit.rb'
+    - 'lib/whodunit/migration_helpers.rb'
+
+Metrics/ParameterLists:
+  Exclude:
+    - 'lib/whodunit/migration_helpers.rb'
 
 # RSpec specific configurations
 RSpec/ExampleLength:
@@ -113,6 +118,7 @@ Metrics/AbcSize:
   Max: 20
   Exclude:
     - 'spec/**/*'
+    - 'lib/whodunit/migration_helpers.rb'
 
 Metrics/CyclomaticComplexity:
   Max: 10

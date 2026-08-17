@@ -56,7 +56,7 @@ module Whodunit
                         auto_create_user_fk_constraints: nil)
       self._whodunit_stamps_added = true
       self.class.whodunit_stamps(self, include_deleter:, creator_type:, updater_type:, deleter_type:,
-                                 auto_create_user_fk_constraints:)
+                                       auto_create_user_fk_constraints:)
     end
   end
 end

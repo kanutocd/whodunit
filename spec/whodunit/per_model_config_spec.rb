@@ -33,6 +33,10 @@ RSpec.describe "Per-model configuration" do
       end
     end
 
+    it "returns configuration without requiring a block" do
+      expect(custom_model.whodunit_config).to be_a(Hash)
+    end
+
     it "returns model-specific column names from whodunit_setting" do
       expect(custom_model.whodunit_setting(:creator_column)).to eq(:creator_id)
       expect(custom_model.whodunit_setting(:updater_column)).to eq(:updater_id)

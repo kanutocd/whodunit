@@ -144,6 +144,34 @@ RSpec.describe Whodunit::MigrationHelpers do
         { from_table: :posts, to_table: "users", options: { column: :updater_id } }
       )
     end
+
+    it "handles disabled stamp columns" do
+      Whodunit.creator_column = nil
+      Whodunit.updater_column = nil
+      Whodunit.deleter_column = nil
+      Whodunit.auto_create_user_fk_constraints = true
+
+      migration_recorder.add_whodunit_stamps(:posts)
+
+      expect(migration_recorder.added_columns).to be_nil
+      expect(migration_recorder.added_indexes).to be_nil
+    end
+
+    it "adds deleter columns and foreign keys for existing tables" do
+      Whodunit.soft_delete_column = :discarded_at
+      Whodunit.auto_create_user_fk_constraints = true
+
+      migration_recorder.add_whodunit_stamps(:posts)
+
+      expect(migration_recorder.added_columns).to include(
+        { table: :posts, column: :deleter_id, type: :bigint, options: { null: true } }
+      )
+      expect(migration_recorder.added_foreign_keys).to include(
+        { from_table: :posts, to_table: "users", options: { column: :deleter_id } }
+      )
+    ensure
+      Whodunit.soft_delete_column = nil
+    end
   end
 
   # #remove_whodunit_stamps
@@ -175,6 +203,30 @@ RSpec.describe Whodunit::MigrationHelpers do
     ensure
       Whodunit.soft_delete_column = nil
     end
+
+    it "removes deleter foreign keys when configured" do
+      Whodunit.soft_delete_column = :deleted_at
+      Whodunit.auto_create_user_fk_constraints = true
+      migration_recorder.set_existing_columns(:users, %i[creator_id updater_id deleter_id])
+
+      migration_recorder.remove_whodunit_stamps(:users)
+
+      expect(migration_recorder.removed_foreign_keys).to include(
+        { from_table: :users, to_table: "users", options: { column: :deleter_id } }
+      )
+    ensure
+      Whodunit.soft_delete_column = nil
+    end
+
+    it "skips disabled foreign keys during removal" do
+      Whodunit.creator_column = nil
+      Whodunit.updater_column = nil
+      Whodunit.auto_create_user_fk_constraints = true
+
+      migration_recorder.remove_whodunit_stamps(:users, include_deleter: false)
+
+      expect(migration_recorder.removed_foreign_keys || []).to be_empty
+    end
   end
 
   # #whodunit_stamps (table definition path)
@@ -197,8 +249,8 @@ RSpec.describe Whodunit::MigrationHelpers do
       Whodunit.auto_create_user_fk_constraints = true
       migration_recorder.whodunit_stamps(table_def)
 
-      foreign_keys = table_def.foreign_keys.map { |definition| [ definition.to_table, definition.options[:column] ] }
-      expect(foreign_keys).to include([ "users", :creator_id ], [ "users", :updater_id ])
+      foreign_keys = table_def.foreign_keys.map { |definition| [definition.to_table, definition.options[:column]] }
+      expect(foreign_keys).to include(["users", :creator_id], ["users", :updater_id])
     end
 
     it "does not duplicate manually declared stamp columns or foreign keys" do
@@ -218,6 +270,31 @@ RSpec.describe Whodunit::MigrationHelpers do
       migration_recorder.whodunit_stamps(table_def, auto_create_user_fk_constraints: false)
 
       expect(table_def.foreign_keys).to be_empty
+    end
+
+    it "handles disabled creator and updater columns with an explicit deleter" do
+      Whodunit.creator_column = nil
+      Whodunit.updater_column = nil
+      Whodunit.auto_create_user_fk_constraints = true
+
+      migration_recorder.whodunit_stamps(table_def, include_deleter: true)
+
+      expect(table_def.columns.map(&:name)).to include("deleter_id")
+      expect(table_def.foreign_keys.map { |key| key.options[:column] }).to include(:deleter_id)
+    end
+
+    it "handles table definitions without index support" do
+      table_without_indexes = Object.new
+      expect { migration_recorder.send(:add_whodunit_indexes_for_create_table, table_without_indexes, false) }
+        .not_to raise_error
+    end
+
+    it "handles table definitions without a name" do
+      table_without_name = Object.new
+      def table_without_name.index(*) = nil
+
+      expect { migration_recorder.send(:add_whodunit_indexes_for_create_table, table_without_name, false) }
+        .not_to raise_error
     end
 
     it "accepts custom column types" do
@@ -245,6 +322,12 @@ RSpec.describe Whodunit::MigrationHelpers do
   describe "#whodunit_stamps without a table definition" do
     it "does not raise when called from a migration with an inferable name" do
       expect { migration_recorder.whodunit_stamps }.not_to raise_error
+    end
+
+    it "returns without adding stamps when migration name is unavailable" do
+      object = Object.new.extend(described_class)
+
+      expect { object.whodunit_stamps }.not_to raise_error
     end
   end
 
@@ -286,6 +369,16 @@ RSpec.describe Whodunit::MigrationHelpers do
     it "returns nil for unrecognised migration class names" do
       migration_recorder.migration_name = "SomeRandomMigration"
       expect(migration_recorder.send(:infer_table_name_from_migration)).to be_nil
+    end
+
+    it "returns nil when migration name is unavailable" do
+      object = Object.new.extend(described_class)
+
+      expect(object.send(:infer_table_name_from_migration)).to be_nil
+    end
+
+    it "returns the migration class name" do
+      expect(migration_recorder.send(:migration_name)).to eq("CreateTestTable")
     end
   end
 end

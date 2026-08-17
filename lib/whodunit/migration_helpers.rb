@@ -171,7 +171,8 @@ module Whodunit
     private
 
     # Handle stamps when called as migration method
-    def handle_migration_stamps(include_deleter, creator_type, updater_type, deleter_type, auto_create_user_fk_constraints)
+    def handle_migration_stamps(include_deleter, creator_type, updater_type, deleter_type,
+                                auto_create_user_fk_constraints)
       table_name = infer_table_name_from_migration
       return unless table_name
 
@@ -256,9 +257,9 @@ module Whodunit
 
       add_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.creator_column if Whodunit.creator_enabled?
       add_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.updater_column if Whodunit.updater_enabled?
-      if should_include_deleter?(include_deleter)
-        add_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.deleter_column
-      end
+      return unless should_include_deleter?(include_deleter)
+
+      add_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.deleter_column
     end
 
     def add_whodunit_foreign_keys_for_create_table(table_def, include_deleter, override)
@@ -266,7 +267,10 @@ module Whodunit
 
       add_table_definition_foreign_key(table_def, Whodunit.creator_column) if Whodunit.creator_enabled?
       add_table_definition_foreign_key(table_def, Whodunit.updater_column) if Whodunit.updater_enabled?
-      add_table_definition_foreign_key(table_def, Whodunit.deleter_column) if should_include_deleter_for_new_table?(include_deleter)
+      return unless should_include_deleter_for_new_table?(include_deleter)
+
+      add_table_definition_foreign_key(table_def,
+                                       Whodunit.deleter_column)
     end
 
     def stamp_column_defined?(table_def, column_name)
@@ -276,7 +280,7 @@ module Whodunit
     def add_table_definition_foreign_key(table_def, column_name)
       return if table_def.foreign_keys.any? do |foreign_key|
         foreign_key.to_table.to_s == Whodunit.user_table_name.to_s &&
-          foreign_key.options[:column].to_s == column_name.to_s
+        foreign_key.options[:column].to_s == column_name.to_s
       end
 
       table_def.foreign_key Whodunit.user_table_name, column: column_name
@@ -289,11 +293,17 @@ module Whodunit
     def remove_whodunit_foreign_keys(table_name, include_deleter, override)
       return unless create_user_fk_constraints?(override)
 
-      remove_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.creator_column if Whodunit.creator_enabled?
-      remove_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.updater_column if Whodunit.updater_enabled?
-      if should_include_deleter?(include_deleter)
-        remove_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.deleter_column
+      if Whodunit.creator_enabled?
+        remove_foreign_key table_name, Whodunit.user_table_name,
+                           column: Whodunit.creator_column
       end
+      if Whodunit.updater_enabled?
+        remove_foreign_key table_name, Whodunit.user_table_name,
+                           column: Whodunit.updater_column
+      end
+      return unless should_include_deleter?(include_deleter)
+
+      remove_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.deleter_column
     end
 
     # Attempt to infer table name from migration class name
@@ -304,10 +314,10 @@ module Whodunit
       case migration_name
       when /^Create(\w+)$/
         table_name = ::Regexp.last_match(1)
-        table_name.respond_to?(:underscore) ? table_name.underscore.pluralize : "#{table_name.downcase}s"
+        table_name.underscore.pluralize
       when /^Add\w*To(\w+)$/
         table_name = ::Regexp.last_match(1)
-        table_name.respond_to?(:underscore) ? table_name.underscore : table_name.downcase
+        table_name.underscore
       end
     end
 
@@ -318,5 +328,5 @@ module Whodunit
   end
 end
 
-# Extend ActiveRecord::Migration when available
-ActiveRecord::Migration.include(Whodunit::MigrationHelpers) if defined?(ActiveRecord::Migration)
+# ActiveRecord is a runtime dependency, so migration helpers are always available.
+ActiveRecord::Migration.include(Whodunit::MigrationHelpers)

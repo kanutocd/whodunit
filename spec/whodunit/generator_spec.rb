@@ -92,6 +92,14 @@ RSpec.describe Whodunit::Generator do
           expect { described_class.install_initializer }.to output(/already exists/).to_stdout
                                                                                     .and raise_error(SystemExit)
         end
+
+        it "overwrites the initializer when confirmed" do
+          allow($stdin).to receive(:gets).and_return("y\n")
+
+          described_class.install_initializer
+
+          expect(File.read("config/initializers/whodunit.rb")).to include("Whodunit configuration")
+        end
       end
     end
 
