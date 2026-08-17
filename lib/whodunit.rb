@@ -141,16 +141,18 @@ module Whodunit
     user_class.to_s
   end
 
-  # Resolve the configured user table name without requiring the model to be
-  # loaded. A loaded Active Record class remains authoritative for custom
-  # table names; the explicit setting always takes precedence.
+  # Resolve the configured user table name without loading the model. Migration
+  # execution can happen before the user table exists, so constantizing the
+  # user class here may cause Active Record to query a missing relation.
+  # Explicit configuration takes precedence; class objects may still provide
+  # their custom Active Record table name directly.
   #
   # @return [String] the user table name
   def self.user_table_name
     return user_class_table_name.to_s if user_class_table_name
 
-    user_class_name.constantize.table_name
-  rescue NameError
+    return user_class.table_name.to_s if user_class.respond_to?(:table_name)
+
     user_class_name.underscore.pluralize
   end
 

@@ -228,6 +228,18 @@ When `auto_create_user_fk_constraints` is enabled, migration helpers add
 foreign-key constraints from the configured creator, updater, and deleter
 columns to the configured user table. The user table is inferred from
 `user_class` unless `user_class_table_name` is set explicitly.
+For the standard `User` model, Whodunit infers `users`; setting
+`user_class_table_name` is not required. Use it only when the model maps to a
+nonstandard table name or when you want to make that mapping explicit.
+
+**Caution:** the referenced user table must be created before migrations that
+create these foreign keys. The user model is not loaded while resolving the
+table name, so a user table can safely use automatic stamps in its own
+migration. Use `auto_create_user_fk_constraints: false` for migrations that
+must run before the user table exists.
+
+Automatic injection intentionally skips Rails internal metadata tables such as
+`ar_internal_metadata` and `schema_migrations`.
 
 The setting can be overridden for an individual migration:
 

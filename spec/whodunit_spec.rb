@@ -89,6 +89,25 @@ RSpec.describe Whodunit do
     ensure
       described_class.user_class_table_name = nil
     end
+
+    it "infers the table name without loading the user class" do
+      described_class.user_class = "UserThatIsNotLoaded"
+
+      expect(described_class.user_table_name).to eq("user_that_is_not_loadeds")
+    ensure
+      described_class.user_class = "User"
+    end
+
+    it "uses the table name from a configured user class object" do
+      user_class = Class.new do
+        def self.table_name = "accounts"
+      end
+      described_class.user_class = user_class
+
+      expect(described_class.user_table_name).to eq("accounts")
+    ensure
+      described_class.user_class = "User"
+    end
   end
 
   describe "data type helpers" do

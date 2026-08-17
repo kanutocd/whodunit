@@ -186,7 +186,7 @@ module Whodunit
       # @return [void]
       # @api private
       def setup_whodunit_associations
-        return if abstract_class?
+        return if abstract_class? || !table_exists?
 
         setup_creator_association if creator_column_exists? && model_creator_enabled?
         setup_updater_association if updater_column_exists? && model_updater_enabled?

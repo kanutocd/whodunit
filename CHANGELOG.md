@@ -12,6 +12,8 @@
 
 - Made stamp auto-injection idempotent when migrations already declare stamp columns or matching foreign keys.
 - Removed stamp foreign-key constraints before removing stamp columns in migration helpers.
+- Avoided loading the configured user model while migrations infer its table name, preventing failures when the user table is being created in the same migration.
+- Skipped automatic stamp and user-FK injection for Rails internal metadata tables during database setup.
 
 ## [0.4.1] - 2026-06-01
 

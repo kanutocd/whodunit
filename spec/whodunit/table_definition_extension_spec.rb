@@ -70,6 +70,15 @@ RSpec.describe Whodunit::TableDefinitionExtension do
         column_names = td.columns.map(&:name)
         expect(column_names).not_to include("creator_id", "updater_id")
       end
+
+      it "does not inject stamps into Rails metadata tables" do
+        internal_table = ActiveRecord::ConnectionAdapters::TableDefinition.new(conn, "ar_internal_metadata")
+        internal_table.timestamps
+
+        column_names = internal_table.columns.map(&:name)
+        expect(column_names).to include("created_at", "updated_at")
+        expect(column_names).not_to include("creator_id", "updater_id")
+      end
     end
 
     context "when auto_inject_whodunit_stamps is disabled" do

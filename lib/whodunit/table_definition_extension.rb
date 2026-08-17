@@ -42,7 +42,7 @@ module Whodunit
       skip = options.delete(:skip_whodunit_stamps)
       result = super
 
-      if Whodunit.auto_inject_whodunit_stamps && !_whodunit_stamps_added && !skip
+      if Whodunit.auto_inject_whodunit_stamps && !_whodunit_stamps_added && !skip && !whodunit_internal_table?
         whodunit_stamps(include_deleter: :auto)
       end
 
@@ -57,6 +57,12 @@ module Whodunit
       self._whodunit_stamps_added = true
       self.class.whodunit_stamps(self, include_deleter:, creator_type:, updater_type:, deleter_type:,
                                        auto_create_user_fk_constraints:)
+    end
+
+    private
+
+    def whodunit_internal_table?
+      %w[ar_internal_metadata schema_migrations].include?(name.to_s)
     end
   end
 end

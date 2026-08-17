@@ -128,6 +128,14 @@ RSpec.describe Whodunit::Stampable do
     expect(WhodunitTestBareRecord.reflect_on_association(:creator)).to be_nil
   end
 
+  it "skips association setup when the model table does not exist yet" do
+    stub_const("WhodunitTestUnmigratedRecord", Class.new(ActiveRecord::Base))
+    WhodunitTestUnmigratedRecord.table_name = "table_created_by_a_future_migration"
+
+    expect { WhodunitTestUnmigratedRecord.include described_class }.not_to raise_error
+    expect(WhodunitTestUnmigratedRecord.reflect_on_association(:creator)).to be_nil
+  end
+
   it "sets up the deleter association when soft delete is enabled" do
     Whodunit.soft_delete_column = :deleted_at
     stub_const("WhodunitTestDeletableRecord", Class.new(ActiveRecord::Base))
