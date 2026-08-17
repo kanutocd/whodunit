@@ -339,5 +339,13 @@ module Whodunit
   end
 end
 
-# ActiveRecord is a runtime dependency, so migration helpers are always available.
-ActiveRecord::Migration.include(Whodunit::MigrationHelpers)
+# Integrate immediately when Active Record is already loaded, or defer until it is.
+# :nocov:
+if defined?(ActiveRecord::Migration)
+  ActiveRecord::Migration.include(Whodunit::MigrationHelpers)
+elsif defined?(ActiveSupport)
+  ActiveSupport.on_load(:active_record) do
+    ActiveRecord::Migration.include(Whodunit::MigrationHelpers)
+  end
+end
+# :nocov:

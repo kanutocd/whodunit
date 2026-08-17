@@ -15,6 +15,7 @@
 - Removed stamp foreign-key constraints before removing stamp columns in migration helpers.
 - Avoided loading the configured user model while migrations infer its table name, preventing failures when the user table is being created in the same migration.
 - Skipped automatic stamp and user-FK injection for Rails internal metadata tables during database setup.
+- Made `require "whodunit"` safe before Active Record loads by deferring migration integration until Active Record is available.
 
 ## [0.4.1] - 2026-06-01
 
