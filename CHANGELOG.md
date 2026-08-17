@@ -7,6 +7,7 @@
 - Added `auto_create_user_fk_constraints` configuration for automatically creating foreign-key constraints from creator, updater, and deleter stamp columns to the configured user table.
 - Added `user_class_table_name` for explicitly overriding the inferred user table name.
 - Added per-migration overrides for automatic user foreign-key creation.
+- Added automatic injection of the configured soft-delete timestamp alongside the deleter stamp column.
 
 ### Fixed
 

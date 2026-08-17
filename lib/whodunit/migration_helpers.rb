@@ -76,6 +76,10 @@ module Whodunit
     #   add_whodunit_stamps :posts, include_deleter: false
     def add_whodunit_stamps(table_name, include_deleter: :auto, creator_type: nil, updater_type: nil, deleter_type: nil,
                             auto_create_user_fk_constraints: nil)
+      if Whodunit.soft_delete_enabled? && !column_exists?(table_name, Whodunit.soft_delete_column)
+        add_column table_name, Whodunit.soft_delete_column, :datetime, null: true
+      end
+
       if Whodunit.creator_enabled?
         add_column table_name, Whodunit.creator_column, creator_type || Whodunit.creator_data_type, null: true
       end
@@ -124,6 +128,10 @@ module Whodunit
          column_exists?(table_name, Whodunit.deleter_column)
         remove_column table_name, Whodunit.deleter_column
       end
+
+      return unless Whodunit.soft_delete_enabled? && column_exists?(table_name, Whodunit.soft_delete_column)
+
+      remove_column table_name, Whodunit.soft_delete_column
     end
 
     # Add stamp columns to a table definition or existing table.
@@ -133,8 +141,7 @@ module Whodunit
     # 2. As a standalone method in migrations (attempts to infer table name)
     #
     # Only adds columns that are enabled in configuration. For new tables,
-    # deleter column is only added when explicitly requested (include_deleter: true)
-    # to be conservative.
+    # include_deleter: :auto follows the configured soft-delete column.
     #
     # @param table_def [ActiveRecord::ConnectionAdapters::TableDefinition, nil]
     #   the table definition (when used in create_table block) or nil
@@ -184,21 +191,26 @@ module Whodunit
     # Handle stamps when called within create_table block
     def handle_table_definition_stamps(table_def, include_deleter, creator_type, updater_type, deleter_type,
                                        auto_create_user_fk_constraints)
-      if Whodunit.creator_enabled? && !stamp_column_defined?(table_def, Whodunit.creator_column)
-        table_def.column Whodunit.creator_column, creator_type || Whodunit.creator_data_type, null: true
-      end
-
-      if Whodunit.updater_enabled? && !stamp_column_defined?(table_def, Whodunit.updater_column)
-        table_def.column Whodunit.updater_column, updater_type || Whodunit.updater_data_type, null: true
-      end
-
-      if should_include_deleter_for_new_table?(include_deleter) &&
-         !stamp_column_defined?(table_def, Whodunit.deleter_column)
-        table_def.column Whodunit.deleter_column, deleter_type || Whodunit.deleter_data_type, null: true
-      end
-
+      add_whodunit_columns_to_table_definition(table_def, include_deleter, creator_type, updater_type, deleter_type)
       add_whodunit_indexes_for_create_table(table_def, include_deleter)
       add_whodunit_foreign_keys_for_create_table(table_def, include_deleter, auto_create_user_fk_constraints)
+    end
+
+    def add_whodunit_columns_to_table_definition(table_def, include_deleter, creator_type, updater_type, deleter_type)
+      add_table_definition_column(table_def, Whodunit.creator_column, creator_type || Whodunit.creator_data_type,
+                                  Whodunit.creator_enabled?)
+      add_table_definition_column(table_def, Whodunit.updater_column, updater_type || Whodunit.updater_data_type,
+                                  Whodunit.updater_enabled?)
+      add_table_definition_column(table_def, Whodunit.soft_delete_column, :datetime,
+                                  Whodunit.soft_delete_enabled?)
+      add_table_definition_column(table_def, Whodunit.deleter_column, deleter_type || Whodunit.deleter_data_type,
+                                  should_include_deleter_for_new_table?(include_deleter))
+    end
+
+    def add_table_definition_column(table_def, column, type, enabled)
+      return unless enabled && !stamp_column_defined?(table_def, column)
+
+      table_def.column column, type, null: true
     end
 
     # Determine if deleter column should be included based on configuration.
@@ -209,12 +221,11 @@ module Whodunit
       include_deleter == :auto ? soft_delete_enabled? : include_deleter.eql?(true)
     end
 
-    # For new tables, be more conservative - only include deleter when explicitly requested.
-    # This prevents adding deleter columns to tables that may not need them.
+    # Determine whether a new table should include the deleter column.
     # @param include_deleter [Symbol, Boolean] the inclusion preference
-    # @return [Boolean] true only when explicitly requested (true)
+    # @return [Boolean] true when explicitly requested or soft-delete is configured
     def should_include_deleter_for_new_table?(include_deleter)
-      include_deleter.eql?(true)
+      should_include_deleter?(include_deleter)
     end
 
     # Check if soft-delete is enabled based on configuration.

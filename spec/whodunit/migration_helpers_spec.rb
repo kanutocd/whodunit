@@ -164,6 +164,7 @@ RSpec.describe Whodunit::MigrationHelpers do
       migration_recorder.add_whodunit_stamps(:posts)
 
       expect(migration_recorder.added_columns).to include(
+        { table: :posts, column: :discarded_at, type: :datetime, options: { null: true } },
         { table: :posts, column: :deleter_id, type: :bigint, options: { null: true } }
       )
       expect(migration_recorder.added_foreign_keys).to include(
@@ -194,11 +195,12 @@ RSpec.describe Whodunit::MigrationHelpers do
 
     it "removes deleter column when soft-delete is configured" do
       Whodunit.soft_delete_column = :deleted_at
-      migration_recorder.set_existing_columns(:users, %i[creator_id updater_id deleter_id])
+      migration_recorder.set_existing_columns(:users, %i[creator_id updater_id deleter_id deleted_at])
       migration_recorder.remove_whodunit_stamps(:users, include_deleter: :auto)
 
       expect(migration_recorder.removed_columns).to include(
-        { table: :users, column: :deleter_id }
+        { table: :users, column: :deleter_id },
+        { table: :users, column: :deleted_at }
       )
     ensure
       Whodunit.soft_delete_column = nil
@@ -308,6 +310,16 @@ RSpec.describe Whodunit::MigrationHelpers do
       migration_recorder.whodunit_stamps(table_def, include_deleter: :auto)
       column_names = table_def.columns.map(&:name)
       expect(column_names).not_to include("deleter_id")
+    end
+
+    it "adds deleter column when soft-delete is configured with auto inclusion" do
+      Whodunit.soft_delete_column = :discarded_at
+      migration_recorder.whodunit_stamps(table_def, include_deleter: :auto)
+
+      expect(table_def.columns.map(&:name)).to include("deleter_id")
+      expect(table_def.columns.map(&:name)).to include("discarded_at")
+    ensure
+      Whodunit.soft_delete_column = nil
     end
 
     it "adds deleter column when include_deleter: true" do

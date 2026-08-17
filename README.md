@@ -241,6 +241,12 @@ must run before the user table exists.
 Automatic injection intentionally skips Rails internal metadata tables such as
 `ar_internal_metadata` and `schema_migrations`.
 
+When `soft_delete_column` is configured, `include_deleter: :auto` also adds
+the configured soft-delete timestamp and deleter columns to new tables. The
+injection is idempotent when either column was declared explicitly. Pass
+`include_deleter: false` to omit only the deleter audit column for a specific
+table.
+
 The setting can be overridden for an individual migration:
 
 ```ruby

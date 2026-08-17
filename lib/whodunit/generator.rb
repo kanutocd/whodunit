@@ -26,7 +26,7 @@ module Whodunit
       #   config.updater_column = :updated_by_id    # Default: :updater_id
       #                                             # Column that stores who last updated the record
       #   config.deleter_column = :deleted_by_id    # Default: :deleter_id
-      #                                             # Column that stores who deleted the record (soft-delete only)
+      #                                             # Column that stores who performed the delete operation
       #
       #   # Soft-delete integration
       #   # Enable tracking of who deleted records when using soft-delete gems
@@ -39,7 +39,7 @@ module Whodunit
       #   # Migration auto-injection
       #   # Control whether whodunit stamps are automatically added to new migrations
       #   config.auto_inject_whodunit_stamps = false # Default: true
-      #                                               # When true, automatically adds t.whodunit_stamps to create_table migrations
+      #                                               # When true, automatically adds stamps to create_table definitions using timestamps
       #                                               # When false, you must manually add t.whodunit_stamps to your migrations
       #   config.auto_create_user_fk_constraints = false # Default: false
       #                                               # When true, adds foreign keys from stamp columns to the user table
@@ -58,7 +58,7 @@ module Whodunit
       #   config.updater_column_type = :uuid       # Default: nil (uses column_data_type)
       #                                            # Set to match your user model's primary key type
       #   config.deleter_column_type = :integer    # Default: nil (uses column_data_type)
-      #                                            # Only used when soft_delete_column is configured
+      #                                            # Used whenever the deleter column is injected
       # end
     RUBY
 
