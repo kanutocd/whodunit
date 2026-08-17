@@ -41,6 +41,9 @@ module Whodunit
       #   config.auto_inject_whodunit_stamps = false # Default: true
       #                                               # When true, automatically adds t.whodunit_stamps to create_table migrations
       #                                               # When false, you must manually add t.whodunit_stamps to your migrations
+      #   config.auto_create_user_fk_constraints = false # Default: false
+      #                                               # When true, adds foreign keys from stamp columns to the user table
+      #   # config.user_class_table_name = :accounts   # Optional explicit user table name
       #
       #   # Column data type configuration
       #   # Configure what data types to use for the tracking columns

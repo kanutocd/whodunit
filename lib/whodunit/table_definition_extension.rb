@@ -52,9 +52,11 @@ module Whodunit
     # assign true tp the tracker `@_whodunit_stamps_added` before the
     # reuse/call of the `whodunit_stamps` flow from the Whodunit::MigrationHelpers module (see railtie.rb)
     #
-    def whodunit_stamps(include_deleter: :auto, creator_type: nil, updater_type: nil, deleter_type: nil)
+    def whodunit_stamps(include_deleter: :auto, creator_type: nil, updater_type: nil, deleter_type: nil,
+                        auto_create_user_fk_constraints: nil)
       self._whodunit_stamps_added = true
-      self.class.whodunit_stamps(self, include_deleter:, creator_type:, updater_type:, deleter_type:)
+      self.class.whodunit_stamps(self, include_deleter:, creator_type:, updater_type:, deleter_type:,
+                                 auto_create_user_fk_constraints:)
     end
   end
 end

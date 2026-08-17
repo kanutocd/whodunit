@@ -53,11 +53,13 @@ Dir[File.expand_path("support/**/*.rb", __dir__)].each { |f| require f }
 # Keep in sync with every mattr_accessor in lib/whodunit.rb.
 ORIGINAL_WHODUNIT_CONFIG = {
   user_class: "User",
+  user_class_table_name: nil,
   creator_column: :creator_id,
   updater_column: :updater_id,
   deleter_column: :deleter_id,
   soft_delete_column: nil,
   auto_inject_whodunit_stamps: true,
+  auto_create_user_fk_constraints: false,
   column_data_type: :bigint,
   creator_column_type: nil,
   updater_column_type: nil,

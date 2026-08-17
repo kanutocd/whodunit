@@ -30,7 +30,15 @@ RSpec.describe Whodunit::MigrationHelpers do
         (@added_indexes ||= []) << { table: table, column: column, options: options }
       end
 
-      attr_reader :added_columns, :removed_columns, :added_indexes
+      def add_foreign_key(from_table, to_table, **options)
+        (@added_foreign_keys ||= []) << { from_table: from_table, to_table: to_table, options: options }
+      end
+
+      def remove_foreign_key(from_table, to_table, **options)
+        (@removed_foreign_keys ||= []) << { from_table: from_table, to_table: to_table, options: options }
+      end
+
+      attr_reader :added_columns, :removed_columns, :added_indexes, :added_foreign_keys, :removed_foreign_keys
 
       def set_existing_columns(table, columns)
         @existing_columns ||= {}
@@ -49,6 +57,7 @@ RSpec.describe Whodunit::MigrationHelpers do
     Object.new.tap do |c|
       def c.supports_datetime_with_precision? = false
       def c.native_database_types = { datetime: { name: "datetime" }, primary_key: { name: "bigint" } }
+      def c.foreign_key_options(_from_table, _to_table, options) = options
     end
   end
 
@@ -107,6 +116,34 @@ RSpec.describe Whodunit::MigrationHelpers do
       deleter_cols = (migration_recorder.added_columns || []).select { |c| c[:column] == :deleter_id }
       expect(deleter_cols).to be_empty
     end
+
+    it "creates user foreign keys when enabled" do
+      Whodunit.auto_create_user_fk_constraints = true
+      migration_recorder.add_whodunit_stamps(:posts)
+
+      expect(migration_recorder.added_foreign_keys).to include(
+        { from_table: :posts, to_table: "users", options: { column: :creator_id } },
+        { from_table: :posts, to_table: "users", options: { column: :updater_id } }
+      )
+    end
+
+    it "allows a migration to opt out of configured user foreign keys" do
+      Whodunit.auto_create_user_fk_constraints = true
+      migration_recorder.add_whodunit_stamps(:posts, auto_create_user_fk_constraints: false)
+
+      expect(migration_recorder.added_foreign_keys).to be_nil
+    end
+
+    it "removes user foreign keys before removing stamp columns" do
+      Whodunit.auto_create_user_fk_constraints = true
+      migration_recorder.set_existing_columns(:posts, %i[creator_id updater_id])
+      migration_recorder.remove_whodunit_stamps(:posts)
+
+      expect(migration_recorder.removed_foreign_keys).to include(
+        { from_table: :posts, to_table: "users", options: { column: :creator_id } },
+        { from_table: :posts, to_table: "users", options: { column: :updater_id } }
+      )
+    end
   end
 
   # #remove_whodunit_stamps
@@ -154,6 +191,33 @@ RSpec.describe Whodunit::MigrationHelpers do
       migration_recorder.whodunit_stamps(table_def)
       column_names = table_def.columns.map(&:name)
       expect(column_names).to include("creator_id", "updater_id")
+    end
+
+    it "adds user foreign keys when enabled" do
+      Whodunit.auto_create_user_fk_constraints = true
+      migration_recorder.whodunit_stamps(table_def)
+
+      foreign_keys = table_def.foreign_keys.map { |definition| [ definition.to_table, definition.options[:column] ] }
+      expect(foreign_keys).to include([ "users", :creator_id ], [ "users", :updater_id ])
+    end
+
+    it "does not duplicate manually declared stamp columns or foreign keys" do
+      Whodunit.auto_create_user_fk_constraints = true
+      table_def.references :creator, type: :bigint, foreign_key: { to_table: :users }
+      table_def.references :updater, type: :bigint, foreign_key: { to_table: :users }
+
+      migration_recorder.whodunit_stamps(table_def)
+
+      expect(table_def.columns.count { |column| column.name == "creator_id" }).to eq(1)
+      expect(table_def.columns.count { |column| column.name == "updater_id" }).to eq(1)
+      expect(table_def.foreign_keys.count).to eq(2)
+    end
+
+    it "allows a table definition to opt out of configured user foreign keys" do
+      Whodunit.auto_create_user_fk_constraints = true
+      migration_recorder.whodunit_stamps(table_def, auto_create_user_fk_constraints: false)
+
+      expect(table_def.foreign_keys).to be_empty
     end
 
     it "accepts custom column types" do

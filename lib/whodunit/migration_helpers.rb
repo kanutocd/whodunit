@@ -74,7 +74,8 @@ module Whodunit
     #   add_whodunit_stamps :posts, include_deleter: true
     # @example Exclude deleter column
     #   add_whodunit_stamps :posts, include_deleter: false
-    def add_whodunit_stamps(table_name, include_deleter: :auto, creator_type: nil, updater_type: nil, deleter_type: nil)
+    def add_whodunit_stamps(table_name, include_deleter: :auto, creator_type: nil, updater_type: nil, deleter_type: nil,
+                            auto_create_user_fk_constraints: nil)
       if Whodunit.creator_enabled?
         add_column table_name, Whodunit.creator_column, creator_type || Whodunit.creator_data_type, null: true
       end
@@ -88,6 +89,7 @@ module Whodunit
       end
 
       add_whodunit_indexes(table_name, include_deleter)
+      add_whodunit_foreign_keys(table_name, include_deleter, auto_create_user_fk_constraints)
     end
 
     # Remove stamp columns from an existing table.
@@ -107,7 +109,9 @@ module Whodunit
     #   remove_whodunit_stamps :posts, include_deleter: true
     # @example Exclude deleter removal
     #   remove_whodunit_stamps :posts, include_deleter: false
-    def remove_whodunit_stamps(table_name, include_deleter: :auto, **_options)
+    def remove_whodunit_stamps(table_name, include_deleter: :auto, auto_create_user_fk_constraints: nil, **_options)
+      remove_whodunit_foreign_keys(table_name, include_deleter, auto_create_user_fk_constraints)
+
       if Whodunit.creator_enabled? && column_exists?(table_name, Whodunit.creator_column)
         remove_column table_name, Whodunit.creator_column
       end
@@ -154,40 +158,46 @@ module Whodunit
     #     t.whodunit_stamps include_deleter: true
     #   end
     def whodunit_stamps(table_def = nil, include_deleter: :auto, creator_type: nil, updater_type: nil,
-                        deleter_type: nil)
+                        deleter_type: nil, auto_create_user_fk_constraints: nil)
       if table_def.nil?
-        handle_migration_stamps(include_deleter, creator_type, updater_type, deleter_type)
+        handle_migration_stamps(include_deleter, creator_type, updater_type, deleter_type,
+                                auto_create_user_fk_constraints)
       else
-        handle_table_definition_stamps(table_def, include_deleter, creator_type, updater_type, deleter_type)
+        handle_table_definition_stamps(table_def, include_deleter, creator_type, updater_type, deleter_type,
+                                       auto_create_user_fk_constraints)
       end
     end
 
     private
 
     # Handle stamps when called as migration method
-    def handle_migration_stamps(include_deleter, creator_type, updater_type, deleter_type)
+    def handle_migration_stamps(include_deleter, creator_type, updater_type, deleter_type, auto_create_user_fk_constraints)
       table_name = infer_table_name_from_migration
       return unless table_name
 
       add_whodunit_stamps(table_name, include_deleter: include_deleter, creator_type: creator_type,
-                                      updater_type: updater_type, deleter_type: deleter_type)
+                                      updater_type: updater_type, deleter_type: deleter_type,
+                                      auto_create_user_fk_constraints: auto_create_user_fk_constraints)
     end
 
     # Handle stamps when called within create_table block
-    def handle_table_definition_stamps(table_def, include_deleter, creator_type, updater_type, deleter_type)
-      if Whodunit.creator_enabled?
+    def handle_table_definition_stamps(table_def, include_deleter, creator_type, updater_type, deleter_type,
+                                       auto_create_user_fk_constraints)
+      if Whodunit.creator_enabled? && !stamp_column_defined?(table_def, Whodunit.creator_column)
         table_def.column Whodunit.creator_column, creator_type || Whodunit.creator_data_type, null: true
       end
 
-      if Whodunit.updater_enabled?
+      if Whodunit.updater_enabled? && !stamp_column_defined?(table_def, Whodunit.updater_column)
         table_def.column Whodunit.updater_column, updater_type || Whodunit.updater_data_type, null: true
       end
 
-      if should_include_deleter_for_new_table?(include_deleter)
+      if should_include_deleter_for_new_table?(include_deleter) &&
+         !stamp_column_defined?(table_def, Whodunit.deleter_column)
         table_def.column Whodunit.deleter_column, deleter_type || Whodunit.deleter_data_type, null: true
       end
 
       add_whodunit_indexes_for_create_table(table_def, include_deleter)
+      add_whodunit_foreign_keys_for_create_table(table_def, include_deleter, auto_create_user_fk_constraints)
     end
 
     # Determine if deleter column should be included based on configuration.
@@ -239,6 +249,51 @@ module Whodunit
       return unless should_include_deleter_for_new_table?(include_deleter)
 
       table_def.index Whodunit.deleter_column, name: "index_#{table_name}_on_deleter"
+    end
+
+    def add_whodunit_foreign_keys(table_name, include_deleter, override)
+      return unless create_user_fk_constraints?(override)
+
+      add_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.creator_column if Whodunit.creator_enabled?
+      add_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.updater_column if Whodunit.updater_enabled?
+      if should_include_deleter?(include_deleter)
+        add_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.deleter_column
+      end
+    end
+
+    def add_whodunit_foreign_keys_for_create_table(table_def, include_deleter, override)
+      return unless create_user_fk_constraints?(override)
+
+      add_table_definition_foreign_key(table_def, Whodunit.creator_column) if Whodunit.creator_enabled?
+      add_table_definition_foreign_key(table_def, Whodunit.updater_column) if Whodunit.updater_enabled?
+      add_table_definition_foreign_key(table_def, Whodunit.deleter_column) if should_include_deleter_for_new_table?(include_deleter)
+    end
+
+    def stamp_column_defined?(table_def, column_name)
+      table_def.columns.any? { |column| column.name.to_s == column_name.to_s }
+    end
+
+    def add_table_definition_foreign_key(table_def, column_name)
+      return if table_def.foreign_keys.any? do |foreign_key|
+        foreign_key.to_table.to_s == Whodunit.user_table_name.to_s &&
+          foreign_key.options[:column].to_s == column_name.to_s
+      end
+
+      table_def.foreign_key Whodunit.user_table_name, column: column_name
+    end
+
+    def create_user_fk_constraints?(override)
+      override.nil? ? Whodunit.auto_create_user_fk_constraints : override
+    end
+
+    def remove_whodunit_foreign_keys(table_name, include_deleter, override)
+      return unless create_user_fk_constraints?(override)
+
+      remove_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.creator_column if Whodunit.creator_enabled?
+      remove_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.updater_column if Whodunit.updater_enabled?
+      if should_include_deleter?(include_deleter)
+        remove_foreign_key table_name, Whodunit.user_table_name, column: Whodunit.deleter_column
+      end
     end
 
     # Attempt to infer table name from migration class name

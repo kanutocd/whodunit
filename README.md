@@ -208,6 +208,8 @@ Whodunit.configure do |config|
   config.deleter_column = :deleted_by_id    # Default: :deleter_id
   config.soft_delete_column = :discarded_at # Default: nil
   config.auto_inject_whodunit_stamps = false # Default: true
+  config.auto_create_user_fk_constraints = false # Default: false
+  # config.user_class_table_name = :accounts   # Optional explicit table name
 
   # Reverse association configuration
   config.auto_setup_reverse_associations = false # Default: true
@@ -220,6 +222,22 @@ Whodunit.configure do |config|
   config.updater_column_type = :uuid       # Default: nil (uses column_data_type)
   config.deleter_column_type = :integer    # Default: nil (uses column_data_type)
 end
+```
+
+When `auto_create_user_fk_constraints` is enabled, migration helpers add
+foreign-key constraints from the configured creator, updater, and deleter
+columns to the configured user table. The user table is inferred from
+`user_class` unless `user_class_table_name` is set explicitly.
+
+The setting can be overridden for an individual migration:
+
+```ruby
+create_table :posts do |t|
+  t.timestamps
+  t.whodunit_stamps auto_create_user_fk_constraints: false
+end
+
+add_whodunit_stamps :legacy_posts, auto_create_user_fk_constraints: true
 ```
 
 ### Data Type Configuration

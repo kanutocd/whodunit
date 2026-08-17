@@ -43,6 +43,11 @@ module Whodunit
   # @return [String] the user class name
   mattr_accessor :user_class, default: "User"
 
+  # Explicit user table name override. When nil, the table name is inferred
+  # from the configured user class.
+  # @return [String, Symbol, nil] the user table name override
+  mattr_accessor :user_class_table_name, default: nil
+
   # The column name for tracking who created the record (default: :creator_id)
   # @return [Symbol] the creator column name
   mattr_accessor :creator_column, default: :creator_id
@@ -64,6 +69,10 @@ module Whodunit
   # Whether to automatically add whodunit_stamps to create_table migrations (default: true)
   # @return [Boolean] auto-injection setting
   mattr_accessor :auto_inject_whodunit_stamps, default: true
+
+  # Whether migration helpers should create foreign keys to the user table.
+  # @return [Boolean] automatic user foreign-key constraint setting
+  mattr_accessor :auto_create_user_fk_constraints, default: false
 
   # @!group Data Type Configuration
 
@@ -130,6 +139,19 @@ module Whodunit
   # @return [String] the user class name
   def self.user_class_name
     user_class.to_s
+  end
+
+  # Resolve the configured user table name without requiring the model to be
+  # loaded. A loaded Active Record class remains authoritative for custom
+  # table names; the explicit setting always takes precedence.
+  #
+  # @return [String] the user table name
+  def self.user_table_name
+    return user_class_table_name.to_s if user_class_table_name
+
+    user_class_name.constantize.table_name
+  rescue NameError
+    user_class_name.underscore.pluralize
   end
 
   # @!group Data Type Helpers

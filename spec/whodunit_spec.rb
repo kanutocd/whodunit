@@ -10,6 +10,10 @@ RSpec.describe Whodunit do
       expect(described_class.user_class).to eq("User")
     end
 
+    it "does not create user foreign keys by default" do
+      expect(described_class.auto_create_user_fk_constraints).to be(false)
+    end
+
     it "has default column names" do
       expect(described_class.creator_column).to eq(:creator_id)
       expect(described_class.updater_column).to eq(:updater_id)
@@ -70,6 +74,20 @@ RSpec.describe Whodunit do
   describe ".user_class_name" do
     it "returns string version of user class" do
       expect(described_class.user_class_name).to eq("User")
+    end
+  end
+
+  describe ".user_table_name" do
+    it "infers the table name from the configured user class" do
+      expect(described_class.user_table_name).to eq("users")
+    end
+
+    it "uses an explicit table name override" do
+      described_class.user_class_table_name = :accounts
+
+      expect(described_class.user_table_name).to eq("accounts")
+    ensure
+      described_class.user_class_table_name = nil
     end
   end
 
