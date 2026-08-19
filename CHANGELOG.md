@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.5.0] - 2026-08-20
+
 ### Added
 
 - Added `auto_create_user_fk_constraints` configuration for automatically creating foreign-key constraints from creator, updater, and deleter stamp columns to the configured user table.
